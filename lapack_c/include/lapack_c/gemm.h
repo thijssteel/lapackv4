@@ -3,6 +3,10 @@
 
 #include "lapack_c/util.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif  // __cplusplus
+
 void lapack_c_dgemm(char transa,
                     char transb,
                     lapack_idx m,
@@ -58,5 +62,9 @@ void lapack_c_zgemm(char transa,
                     lapack_double_complex beta,
                     lapack_double_complex* C,
                     lapack_idx ldc);
+
+#ifdef __cplusplus
+}
+#endif  // __cplusplus
 
 #endif

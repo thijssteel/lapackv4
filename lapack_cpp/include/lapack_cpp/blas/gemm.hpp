@@ -2,7 +2,7 @@
 #define LAPACK_CPP_GEMM_HPP
 
 #include "lapack_cpp/base.hpp"
-
+#include "lapack_cpp/utils.hpp"
 namespace lapack_cpp {
 
 /**
@@ -72,17 +72,17 @@ void gemm(Op transA,
                 }
             }
         }
-        // else {  // transB == Op::ConjTrans
-        //     for (idx_t j = 0; j < n; ++j) {
-        //         for (idx_t i = 0; i < m; ++i)
-        //             C(i, j) *= beta;
-        //         for (idx_t l = 0; l < k; ++l) {
-        //             T alpha_Bjl = alpha * conj(B(j, l));
-        //             for (idx_t i = 0; i < m; ++i)
-        //                 C(i, j) += A(i, l) * alpha_Bjl;
-        //         }
-        //     }
-        // }
+        else {  // transB == Op::ConjTrans
+            for (idx_t j = 0; j < n; ++j) {
+                for (idx_t i = 0; i < m; ++i)
+                    C(i, j) *= beta;
+                for (idx_t l = 0; l < k; ++l) {
+                    T alpha_Bjl = alpha * conj(B(j, l));
+                    for (idx_t i = 0; i < m; ++i)
+                        C(i, j) += A(i, l) * alpha_Bjl;
+                }
+            }
+        }
     }
     else if (transA == Op::Trans) {
         if (transB == Op::NoTrans) {
@@ -105,48 +105,48 @@ void gemm(Op transA,
                 }
             }
         }
-        // else {  // transB == Op::ConjTrans
-        //     for (idx_t j = 0; j < n; ++j) {
-        //         for (idx_t i = 0; i < m; ++i) {
-        //             T sum = zero;
-        //             for (idx_t l = 0; l < k; ++l)
-        //                 sum += A(l, i) * conj(B(j, l));
-        //             C(i, j) = alpha * sum + beta * C(i, j);
-        //         }
-        //     }
-        // }
+        else {  // transB == Op::ConjTrans
+            for (idx_t j = 0; j < n; ++j) {
+                for (idx_t i = 0; i < m; ++i) {
+                    T sum = zero;
+                    for (idx_t l = 0; l < k; ++l)
+                        sum += A(l, i) * conj(B(j, l));
+                    C(i, j) = alpha * sum + beta * C(i, j);
+                }
+            }
+        }
     }
     else {  // transA == Op::ConjTrans
-        // if (transB == Op::NoTrans) {
-        //     for (idx_t j = 0; j < n; ++j) {
-        //         for (idx_t i = 0; i < m; ++i) {
-        //             T sum = zero;
-        //             for (idx_t l = 0; l < k; ++l)
-        //                 sum += conj(A(l, i)) * B(l, j);
-        //             C(i, j) = alpha * sum + beta * C(i, j);
-        //         }
-        //     }
-        // }
-        // else if (transB == Op::Trans) {
-        //     for (idx_t j = 0; j < n; ++j) {
-        //         for (idx_t i = 0; i < m; ++i) {
-        //             T sum = zero;
-        //             for (idx_t l = 0; l < k; ++l)
-        //                 sum += conj(A(l, i)) * B(j, l);
-        //             C(i, j) = alpha * sum + beta * C(i, j);
-        //         }
-        //     }
-        // }
-        // else {  // transB == Op::ConjTrans
-        //     for (idx_t j = 0; j < n; ++j) {
-        //         for (idx_t i = 0; i < m; ++i) {
-        //             T sum = zero;
-        //             for (idx_t l = 0; l < k; ++l)
-        //                 sum += A(l, i) * B(j, l);
-        //             C(i, j) = alpha * conj(sum) + beta * C(i, j);
-        //         }
-        //     }
-        // }
+        if (transB == Op::NoTrans) {
+            for (idx_t j = 0; j < n; ++j) {
+                for (idx_t i = 0; i < m; ++i) {
+                    T sum = zero;
+                    for (idx_t l = 0; l < k; ++l)
+                        sum += conj(A(l, i)) * B(l, j);
+                    C(i, j) = alpha * sum + beta * C(i, j);
+                }
+            }
+        }
+        else if (transB == Op::Trans) {
+            for (idx_t j = 0; j < n; ++j) {
+                for (idx_t i = 0; i < m; ++i) {
+                    T sum = zero;
+                    for (idx_t l = 0; l < k; ++l)
+                        sum += conj(A(l, i)) * B(j, l);
+                    C(i, j) = alpha * sum + beta * C(i, j);
+                }
+            }
+        }
+        else {  // transB == Op::ConjTrans
+            for (idx_t j = 0; j < n; ++j) {
+                for (idx_t i = 0; i < m; ++i) {
+                    T sum = zero;
+                    for (idx_t l = 0; l < k; ++l)
+                        sum += A(l, i) * B(j, l);
+                    C(i, j) = alpha * conj(sum) + beta * C(i, j);
+                }
+            }
+        }
     }
 }
 

@@ -1,6 +1,5 @@
 *.o
-bin/
-
+*.mod
 
 # Core latex/pdflatex auxiliary files:
 *.aux

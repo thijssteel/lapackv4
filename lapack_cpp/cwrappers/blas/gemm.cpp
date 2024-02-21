@@ -40,19 +40,19 @@ inline void gemm_c_wrapper(Op transA,
         (transA == Op::NoTrans) ? A.num_columns() : A.num_rows();
 
     if constexpr (std::is_same<T, double>::value) {
-        lapack_c_dgemm(transA, transB, m, n, k, alpha, A.ptr(), A.ldim(),
+        lapack_c_dgemm((char)transA, (char)transB, m, n, k, alpha, A.ptr(), A.ldim(),
                        B.ptr(), B.ldim(), beta, C.ptr(), C.ldim());
     }
     else if constexpr (std::is_same<T, float>::value) {
-        lapack_c_sgemm(transA, transB, m, n, k, alpha, A.ptr(), A.ldim(),
+        lapack_c_sgemm((char)transA, (char)transB, m, n, k, alpha, A.ptr(), A.ldim(),
                        B.ptr(), B.ldim(), beta, C.ptr(), C.ldim());
     }
     else if constexpr (std::is_same<T, std::complex<float>>::value) {
-        lapack_c_cgemm(transA, transB, m, n, k, alpha, A.ptr(), A.ldim(),
+        lapack_c_cgemm((char)transA, (char)transB, m, n, k, alpha, A.ptr(), A.ldim(),
                        B.ptr(), B.ldim(), beta, C.ptr(), C.ldim());
     }
     else if constexpr (std::is_same<T, std::complex<double>>::value) {
-        lapack_c_zgemm(transA, transB, m, n, k, alpha, A.ptr(), A.ldim(),
+        lapack_c_zgemm((char)transA, (char)transB, m, n, k, alpha, A.ptr(), A.ldim(),
                        B.ptr(), B.ldim(), beta, C.ptr(), C.ldim());
     }
     else {

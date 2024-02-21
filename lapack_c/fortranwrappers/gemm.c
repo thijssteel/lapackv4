@@ -1,8 +1,8 @@
+#include "lapack_c/gemm.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif  // __cplusplus
-
-#include "lapack_c/gemm.h"
 
 //
 // Define headers for fortran routines
@@ -85,7 +85,7 @@ void lapack_c_dgemm(char transa,
                double* C,
                int ldc)
 {
-    FORTRAN_DGEMM(transa, transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta,
+    FORTRAN_DGEMM(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta,
                   C, &ldc);
 }
 
@@ -103,7 +103,7 @@ void lapack_c_sgemm(char transa,
                float* C,
                int ldc)
 {
-    FORTRAN_SGEMM(transa, transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta,
+    FORTRAN_SGEMM(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta,
                   C, &ldc);
 }
 
@@ -121,7 +121,7 @@ void lapack_c_cgemm(char transa,
                     lapack_float_complex* C,
                     lapack_idx ldc)
 {
-    FORTRAN_CGEMM(transa, transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta,
+    FORTRAN_CGEMM(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta,
                   C, &ldc);
 }
 
@@ -139,7 +139,7 @@ void lapack_c_zgemm(char transa,
                     lapack_double_complex* C,
                     lapack_idx ldc)
 {
-    FORTRAN_ZGEMM(transa, transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta,
+    FORTRAN_ZGEMM(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta,
                   C, &ldc);
 }
 

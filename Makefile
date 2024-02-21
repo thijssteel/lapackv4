@@ -2,7 +2,7 @@ CXX=g++
 
 CXXFLAGS=-I$(incdir) -std=c++20 -Wall -Wextra -pedantic -g
 
-all: ./example/test_gemm_fortran ./example/test_gemm_cpp ./example/test_gemm_cpp_cpp ./example/test_gemm_cpp_fortran
+all: ./example/test_gemm_fortran_fortran ./example/test_gemm_fortran_cpp ./example/test_gemm_cpp_cpp ./example/test_gemm_cpp_fortran
 
 # Fortran files
 
@@ -31,10 +31,10 @@ lapack_cpp/cwrappers/blas/%.o: lapack_cpp/cwrappers/blas/%.cpp
 # The compilation commands here are very important, depending on what files are being linked to, we use the C++ or Fortran implementation.
 # Also important, if only C++ implementations are being used, we don't need a fortran compiler.
 
-example/test_gemm_fortran: example/test_gemm.f90 lapack_fortran/src/sgemm.o lapack_fortran/src/lsame.o  lapack_fortran/src/xerbla.o
+example/test_gemm_fortran_fortran: example/test_gemm.f90 lapack_fortran/src/sgemm.o lapack_fortran/src/lsame.o  lapack_fortran/src/xerbla.o
 	gfortran -o $@ $^
 
-example/test_gemm_cpp: example/test_gemm.f90 lapack_fortran/cwrappers/sgemm.o lapack_c/cppwrappers/gemm.o
+example/test_gemm_fortran_cpp: example/test_gemm.f90 lapack_fortran/cwrappers/sgemm.o lapack_c/cppwrappers/gemm.o
 	gfortran -o $@ $^ -lstdc++
 
 example/test_gemm_cpp_cpp: example/test_gemm.cpp

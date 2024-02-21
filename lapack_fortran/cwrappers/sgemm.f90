@@ -1,4 +1,4 @@
-! Wrapper around dgemm defined in C
+! Wrapper around sgemm defined in C
 subroutine sgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
     use iso_c_binding, only: c_char
     implicit none

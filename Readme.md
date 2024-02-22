@@ -20,7 +20,7 @@ The goal of this repo is to truly be a replacement for LAPACK, not just a wrappe
 
 - Completeness, even the obscure or difficult routines should be implemented
 - Full compatibility through Fortran api
-- High performance
+- High performance (or at least as fast as the current LAPACK)
 
 ## Design principles
 
@@ -34,8 +34,10 @@ An important part of any linear algebra package is how they store matrices and v
 
 We have made the following decisions for matrices:
 - Matrices are stored in a templated Matrix class. We believe that this is absolutely necessary to improve the developer experience. Since the Matrix class will know its size, it can easy check that no out of bounds accesses occur. This is even possible for submatrices that are locally defined, something that is not possible without such a class.
-- Matrices are stored in column-major order. Our primary aim is to replace LAPACK, not provide a high-level interface that is easily callable (although a nice interface is preferable if easily achieved). Storing the matrices in column-major order makes it significantly easier to call LAPACK for any function that is yet to be translated. In a later phase, row-major storage may be supported.
-- All matrices and vectors are non-owning wrappers. This allows easy wrapping of the pointers passed through the C/Fortran interface. We also need to use non-owning wrappers for submatrices anyway, so by making all matrix non-owning, we avoid having to support multiple types.
+- Initially, we only support column-major order. Our primary aim is to replace LAPACK, not provide a high-level interface that is easily callable (although a nice interface is preferable if easily achieved). Storing the matrices in column-major order makes it significantly easier to call LAPACK for any function that is yet to be translated. The Matrix classes do support row-major storage through an optional template argument.
+- All matrices and vectors are non-owning lightweight wrappers. This allows easy wrapping of the pointers passed through the C/Fortran interface. We also need to use non-owning wrappers for submatrices anyway, so by making all matrices non-owning, we avoid having to support multiple types.
+- An important part of a matrix class is constness. Typically in C++, if a non-owning wrapper is declared as const, the underlying data can still be modified. Our Matrix and Vector classes follow this rule and so somewhat counterintuitively, the following code does not complain: ```const Matrix<float> A(...); A(0,0) = 1.0;```. To declare a matrix as truly const, there is a separate class ```ConstMatrix``` which behaves the same as a normal matrix, except that the underlying data cannot be modified. This means that it can wrap a const pointer, only returns data by value and return ConstMatrices and ConstVectors for submatrices. A possible alternative would be to use ```Matrix<const float>```, however, this leads to the template parameter ```T``` being a const, which requires some nuance and we want to avoid issues for unaware programmers.
+
 
 ### 3. Interoperability with Fortran
 
@@ -70,7 +72,7 @@ In Fortran it would have the traditional interface:
 subroutine dgemv( trans, m, n, alpha, A, lda, x, incx, beta, y, incy )
 ```
 
-We keep all three interfaces intact at all times. Initially, this will be code written in Fortran, with C wrappers around it and C++ wrappers around those. If a routine is rewritten in C++, we simply write C and Fortran wrappers around it. By developing this way, we can always keep the matrix in a "finished" state. Making it usable from the start.
+We keep all three interfaces intact at all times. Initially, this will be code written in Fortran, with C wrappers around it and C++ wrappers around those. If a routine is rewritten in C++, we simply write C and Fortran wrappers around it. By developing this way, we can always keep the library in a "finished" state. Making it usable from the start.
 
 Note: because we consider adding support for row-major layout at a later stage, it may be necessary to add a layout argument to the C interface initially so that supporting row-major layout does not require an interface change.
 

@@ -1,10 +1,11 @@
 ! Wrapper around sgemm defined in C
 subroutine sgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
     use iso_c_binding, only: c_char
+    use kinds, only: idx_kind
     implicit none
     ! Arguments
     real, intent(in) :: alpha,beta
-    integer, intent(in) :: m,n,k,lda,ldb,ldc
+    integer(idx_kind), intent(in) :: m,n,k,lda,ldb,ldc
     character, intent(in) :: transa,transb
     real, intent(in) :: a(lda,*),b(ldb,*)
     real, intent(inout) :: c(ldc,*)

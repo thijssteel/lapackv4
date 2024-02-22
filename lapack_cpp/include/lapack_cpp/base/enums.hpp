@@ -5,6 +5,8 @@
 
 namespace lapack_cpp {
 
+enum class Layout : char { RowMajor = 'R', ColMajor = 'C' };
+
 enum class Op : char { NoTrans = 'N', Trans = 'T', ConjTrans = 'C' };
 
 inline constexpr Op char2op(char t)

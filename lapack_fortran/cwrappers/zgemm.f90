@@ -1,10 +1,11 @@
 ! Wrapper around zgemm defined in C
 subroutine zgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
     use iso_c_binding, only: c_char
+    use kinds, only: idx_kind
     implicit none
     ! Arguments
     double complex, intent(in) :: alpha,beta
-    integer, intent(in) :: m,n,k,lda,ldb,ldc
+    integer(idx_kind), intent(in) :: m,n,k,lda,ldb,ldc
     character, intent(in) :: transa,transb
     double complex, intent(in) :: a(lda,*),b(ldb,*)
     double complex, intent(inout) :: c(ldc,*)
@@ -12,10 +13,11 @@ subroutine zgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
     ! Interface to C
     interface
         subroutine lapack_c_zgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc) bind(c, name="lapack_c_zgemm")
-            use iso_c_binding, only: c_char, c_double_complex, c_int
+            use iso_c_binding, only: c_char, c_double_complex
+            use kinds, only: idx_kind
             implicit none
             complex(c_double_complex), value, intent(in) :: alpha,beta
-            integer(c_int), value, intent(in) :: m,n,k,lda,ldb,ldc
+            integer(idx_kind), value, intent(in) :: m,n,k,lda,ldb,ldc
             character(c_char), value, intent(in) :: transa,transb
             complex(c_double_complex), intent(in) :: a(lda,*),b(ldb,*)
             complex(c_double_complex), intent(inout) :: c(ldc,*)

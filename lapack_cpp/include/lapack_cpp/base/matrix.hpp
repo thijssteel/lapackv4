@@ -15,7 +15,7 @@
 namespace lapack_cpp {
 
 // Forward declaration of ConstMatrix
-template <typename T, typename idx_t = size_t>
+template <typename T, typename idx_t = size_t, Layout layout = Layout::ColMajor>
 class ConstMatrix;
 
 /**
@@ -26,7 +26,7 @@ class ConstMatrix;
  * @tparam T this is a template parameter that specifies the type of the
  *           elements of the vector.
  */
-template <typename T, typename idx_t = size_t>
+template <typename T, typename idx_t = size_t, Layout layout = Layout::ColMajor>
 class Matrix {
    public:
     typedef T value_type;
@@ -36,46 +36,50 @@ class Matrix {
     Matrix(const idx_t m,
            const idx_t n,
            const MemoryBlock<T, idx_t, aligned>& m_block)
-        : m_(m), n_(n), ldim_(calc_ld<T, aligned>(m_)), data_(m_block.ptr())
+        : m_(m),
+          n_(n),
+          ldim_(calc_ld<T, aligned>(layout == Layout::ColMajor ? m_ : n_)),
+          data_(m_block.ptr())
     {
-        assert(m_block.size() >= ldim_ * n_);
+        assert(m_block.size() >= ldim_ * (layout == Layout::ColMajor ? n_ : m_));
     }
 
     // Constructor for a matrix of size m x n
+    template <bool aligned>
     Matrix(const idx_t m,
            const idx_t n,
-           const MemoryBlock<T, idx_t>& m_block,
+           const MemoryBlock<T, idx_t, aligned>& m_block,
            const idx_t ldim)
         : m_(m), n_(n), ldim_(ldim), data_(m_block.ptr())
     {
-        assert(m_block.size() >= ldim_ * n_);
+        assert(m_block.size() >= ldim_ * (layout == Layout::ColMajor ? n_ : m_));
     }
 
     // Constructor for a matrix of size m x n
     Matrix(const idx_t m, const idx_t n, T* ptr, const idx_t ldim)
         : m_(m), n_(n), ldim_(ldim), data_(ptr)
     {
-        assert(ldim >= m);
+        assert(ldim >= (layout == Layout::ColMajor ? m : n));
     }
 
     // Copy constructor
-    Matrix(const Matrix<T, idx_t>& m)
+    Matrix(const Matrix& m)
         : m_(m.num_rows()), n_(m.num_columns()), ldim_(m.ldim()), data_(m.ptr())
     {}
 
     // Make a const promotion of the matrix
-    ConstMatrix<T, idx_t> as_const() const
+    ConstMatrix<T, idx_t, layout> as_const() const
     {
-        return ConstMatrix<T, idx_t>(m_, n_, data_, ldim_);
+        return ConstMatrix<T, idx_t, layout>(m_, n_, data_, ldim_);
     }
 
     // Assignment operator
-    void operator=(const Matrix<T>& m)
+    void operator=(const Matrix& m)
     {
         assert(m.num_rows() == m_);
         assert(m.num_columns() == n_);
-        for (int i = 0; i < m_; ++i) {
-            for (int j = 0; j < n_; ++j) {
+        for (idx_t i = 0; i < m_; ++i) {
+            for (idx_t j = 0; j < n_; ++j) {
                 data_[i + j * ldim_] = m(i, j);
             }
         }
@@ -94,13 +98,14 @@ class Matrix {
     inline idx_t size() const { return n_ * m_; }
 
     // Returns the ij-th element of the matrix
-    // Note: this function will only be called when the matrix is not const
-    // therefore, we return the element by reference.
     inline T& operator()(idx_t i, idx_t j) const
     {
         assert(i < m_);
         assert(j < n_);
-        return data_[i + j * ldim_];
+        if (layout == Layout::ColMajor)
+            return data_[i + j * ldim_];
+        else
+            return data_[i * ldim_ + j];
     }
 
     /**
@@ -123,7 +128,10 @@ class Matrix {
         assert(j2 <= n_);
         assert(i1 < i2);
         assert(j1 < j2);
-        return Matrix(i2 - i1, j2 - j1, &data_[i1 + j1 * ldim_], ldim_);
+        if (layout == Layout::ColMajor)
+            return Matrix(i2 - i1, j2 - j1, &data_[i1 + j1 * ldim_], ldim_);
+        else
+            return Matrix(i2 - i1, j2 - j1, &data_[i1 * ldim_ + j1], ldim_);
     }
 
     /**
@@ -135,7 +143,10 @@ class Matrix {
     {
         assert(i >= 0);
         assert(i < n_);
-        return Vector<T, idx_t>(m_, &data_[i * ldim_], 1);
+        if (layout == Layout::ColMajor)
+            return Vector<T, idx_t>(m_, &data_[i * ldim_], 1);
+        else
+            return Vector<T, idx_t>(m_, &data_[i], ldim_);
     }
 
     /**
@@ -147,7 +158,10 @@ class Matrix {
     {
         assert(i >= 0);
         assert(i < m_);
-        return Vector<T, idx_t>(n_, &data_[i], ldim_);
+        if (layout == Layout::ColMajor)
+            return Vector<T, idx_t>(n_, &data_[i], ldim_);
+        else
+            return Vector<T, idx_t>(n_, &data_[i * ldim_], 1);
     }
 
     /**
@@ -166,15 +180,7 @@ class Matrix {
     T* data_;
 };
 
-/**
- * A matrix class that can be used to store matrices of arbitrary size.
- *
- * The elements of the matrix are stored in column-major order
- *
- * @tparam T this is a template parameter that specifies the type of the
- *           elements of the vector.
- */
-template <typename T, typename idx_t>
+template <typename T, typename idx_t, Layout layout>
 class ConstMatrix {
    public:
     typedef T value_type;
@@ -186,27 +192,29 @@ class ConstMatrix {
                 const MemoryBlock<T, idx_t, aligned>& m_block)
         : m_(m),
           n_(n),
-          ldim_(aligned ? calc_ld<T>(m_) : m_),
+          ldim_(calc_ld<T, aligned>(layout == Layout::ColMajor ? m_ : n_)),
           data_(m_block.ptr())
     {
-        assert(m_block.size() >= ldim_ * n_);
+        assert(m_block.size() >= ldim_ * (layout == Layout::ColMajor ? n_ : m_));
     }
 
     // Constructor for a matrix of size m x n
+    template <bool aligned>
     ConstMatrix(const idx_t m,
                 const idx_t n,
-                const MemoryBlock<T, idx_t>& m_block,
+                const MemoryBlock<T, idx_t, aligned>& m_block,
                 const idx_t ldim)
         : m_(m), n_(n), ldim_(ldim), data_(m_block.ptr())
     {
-        assert(m_block.size() >= ldim_ * n_);
+        assert(m_block.size() >=
+               ldim_ * (layout == Layout::ColMajor ? n_ : m_));
     }
 
     // Constructor for a matrix of size m x n
     ConstMatrix(const idx_t m, const idx_t n, const T* ptr, const idx_t ldim)
         : m_(m), n_(n), ldim_(ldim), data_(ptr)
     {
-        assert(ldim >= m);
+        assert(ldim >= (layout == Layout::ColMajor ? m : n));
     }
 
     // Copy constructor
@@ -215,7 +223,7 @@ class ConstMatrix {
     {}
 
     // Const promotion constructor
-    ConstMatrix(const Matrix<T, idx_t>& m)
+    ConstMatrix(const Matrix<T, idx_t, layout>& m)
         : m_(m.num_rows()), n_(m.num_columns()), ldim_(m.ldim()), data_(m.ptr())
     {}
 
@@ -236,7 +244,10 @@ class ConstMatrix {
     {
         assert(i < m_);
         assert(j < n_);
-        return data_[i + j * ldim_];
+        if (layout == Layout::ColMajor)
+            return data_[i + j * ldim_];
+        else
+            return data_[i * ldim_ + j];
     }
 
     /**
@@ -259,7 +270,12 @@ class ConstMatrix {
         assert(j2 <= n_);
         assert(i1 < i2);
         assert(j1 < j2);
-        return ConstMatrix(i2 - i1, j2 - j1, &data_[i1 + j1 * ldim_], ldim_);
+        if (layout == Layout::ColMajor)
+            return ConstMatrix(i2 - i1, j2 - j1, &data_[i1 + j1 * ldim_],
+                               ldim_);
+        else
+            return ConstMatrix(i2 - i1, j2 - j1, &data_[i1 * ldim_ + j1],
+                               ldim_);
     }
 
     /**
@@ -271,7 +287,10 @@ class ConstMatrix {
     {
         assert(i >= 0);
         assert(i < n_);
-        return ConstVector<T, idx_t>(m_, &data_[i * ldim_], 1);
+        if (layout == Layout::ColMajor)
+            return ConstVector<T, idx_t>(m_, &data_[i * ldim_], 1);
+        else
+            return ConstVector<T, idx_t>(m_, &data_[i], ldim_);
     }
 
     /**
@@ -283,7 +302,10 @@ class ConstMatrix {
     {
         assert(i >= 0);
         assert(i < m_);
-        return ConstVector<T, idx_t>(n_, &data_[i], ldim_);
+        if (layout == Layout::ColMajor)
+            return ConstVector<T, idx_t>(n_, &data_[i], ldim_);
+        else
+            return ConstVector<T, idx_t>(n_, &data_[i * ldim_], 1);
     }
 
     /**
@@ -304,4 +326,4 @@ class ConstMatrix {
 
 }  // namespace lapack_cpp
 
-#endif // LAPACK_CPP_MATRIX_HPP
+#endif  // LAPACK_CPP_MATRIX_HPP

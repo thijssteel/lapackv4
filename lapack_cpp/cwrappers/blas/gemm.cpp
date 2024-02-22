@@ -16,15 +16,27 @@ namespace lapack_cpp {
  * @param B
  * @param C
  */
-template <typename T, typename idx_t>
+template <typename T, typename idx_t, Layout layout>
 inline void gemm_c_wrapper(Op transA,
                            Op transB,
                            T alpha,
-                           const ConstMatrix<T, idx_t>& A,
-                           const ConstMatrix<T, idx_t>& B,
+                           const ConstMatrix<T, idx_t, layout>& A,
+                           const ConstMatrix<T, idx_t, layout>& B,
                            T beta,
-                           const Matrix<T, idx_t>& C)
+                           const Matrix<T, idx_t, layout>& C)
 {
+    if( layout == Layout::RowMajor )
+    {
+        // Row-major -> Col-major = Transpose
+        // C = alpha * A * B + beta * C -> C^T = alpha * B^T * A^T + beta * C^T
+        // Reinterpret A and B as column-major and call gemm with switched arguments
+        ConstMatrix<T, idx_t, Layout::ColMajor> A_t(A.num_columns(), A.num_rows(), A.ptr(), A.ldim());
+        ConstMatrix<T, idx_t, Layout::ColMajor> B_t(B.num_columns(), B.num_rows(), B.ptr(), B.ldim());
+        Matrix<T, idx_t, Layout::ColMajor> C_t(C.num_columns(), C.num_rows(), C.ptr(), C.ldim());
+        gemm_c_wrapper(transB, transA, alpha, B_t, A_t, beta, C_t);
+        return;
+    }
+
     assert(((transA == Op::NoTrans) ? A.num_columns() : A.num_rows()) ==
            ((transB == Op::NoTrans) ? B.num_rows() : B.num_columns()));
     assert(((transA == Op::NoTrans) ? A.num_rows() : A.num_columns()) ==
@@ -60,54 +72,108 @@ inline void gemm_c_wrapper(Op transA,
     }
 }
 
-// Specialization for double, size_t
+// Specialization for double, size_t, ColMajor
 template <>
 void gemm(Op transA,
           Op transB,
           double alpha,
-          const ConstMatrix<double, size_t>& A,
-          const ConstMatrix<double, size_t>& B,
+          const ConstMatrix<double, size_t, Layout::ColMajor>& A,
+          const ConstMatrix<double, size_t, Layout::ColMajor>& B,
           double beta,
-          const Matrix<double, size_t>& C)
+          const Matrix<double, size_t, Layout::ColMajor>& C)
 {
     gemm_c_wrapper(transA, transB, alpha, A, B, beta, C);
 }
 
-// Specialization for float, size_t
+// Specialization for float
 template <>
 void gemm(Op transA,
           Op transB,
           float alpha,
-          const ConstMatrix<float, size_t>& A,
-          const ConstMatrix<float, size_t>& B,
+          const ConstMatrix<float, size_t, Layout::ColMajor>& A,
+          const ConstMatrix<float, size_t, Layout::ColMajor>& B,
           float beta,
-          const Matrix<float, size_t>& C)
+          const Matrix<float, size_t, Layout::ColMajor>& C)
 {
     gemm_c_wrapper(transA, transB, alpha, A, B, beta, C);
 }
 
-// Specialization for std::complex<float>, size_t
+// Specialization for std::complex<float>
 template <>
 void gemm(Op transA,
           Op transB,
           std::complex<float> alpha,
-          const ConstMatrix<std::complex<float>, size_t>& A,
-          const ConstMatrix<std::complex<float>, size_t>& B,
+          const ConstMatrix<std::complex<float>, size_t, Layout::ColMajor>& A,
+          const ConstMatrix<std::complex<float>, size_t, Layout::ColMajor>& B,
           std::complex<float> beta,
-          const Matrix<std::complex<float>, size_t>& C)
+          const Matrix<std::complex<float>, size_t, Layout::ColMajor>& C)
 {
     gemm_c_wrapper(transA, transB, alpha, A, B, beta, C);
 }
 
-// Specialization for std::complex<double>, size_t
+// Specialization for std::complex<double>
 template <>
 void gemm(Op transA,
           Op transB,
           std::complex<double> alpha,
-          const ConstMatrix<std::complex<double>, size_t>& A,
-          const ConstMatrix<std::complex<double>, size_t>& B,
+          const ConstMatrix<std::complex<double>, size_t, Layout::ColMajor>& A,
+          const ConstMatrix<std::complex<double>, size_t, Layout::ColMajor>& B,
           std::complex<double> beta,
-          const Matrix<std::complex<double>, size_t>& C)
+          const Matrix<std::complex<double>, size_t, Layout::ColMajor>& C)
+{
+    gemm_c_wrapper(transA, transB, alpha, A, B, beta, C);
+}
+
+
+
+// Specialization for double, size_t, ColMajor
+template <>
+void gemm(Op transA,
+          Op transB,
+          double alpha,
+          const ConstMatrix<double, size_t, Layout::RowMajor>& A,
+          const ConstMatrix<double, size_t, Layout::RowMajor>& B,
+          double beta,
+          const Matrix<double, size_t, Layout::RowMajor>& C)
+{
+    gemm_c_wrapper(transA, transB, alpha, A, B, beta, C);
+}
+
+// Specialization for float
+template <>
+void gemm(Op transA,
+          Op transB,
+          float alpha,
+          const ConstMatrix<float, size_t, Layout::RowMajor>& A,
+          const ConstMatrix<float, size_t, Layout::RowMajor>& B,
+          float beta,
+          const Matrix<float, size_t, Layout::RowMajor>& C)
+{
+    gemm_c_wrapper(transA, transB, alpha, A, B, beta, C);
+}
+
+// Specialization for std::complex<float>
+template <>
+void gemm(Op transA,
+          Op transB,
+          std::complex<float> alpha,
+          const ConstMatrix<std::complex<float>, size_t, Layout::RowMajor>& A,
+          const ConstMatrix<std::complex<float>, size_t, Layout::RowMajor>& B,
+          std::complex<float> beta,
+          const Matrix<std::complex<float>, size_t, Layout::RowMajor>& C)
+{
+    gemm_c_wrapper(transA, transB, alpha, A, B, beta, C);
+}
+
+// Specialization for std::complex<double>
+template <>
+void gemm(Op transA,
+          Op transB,
+          std::complex<double> alpha,
+          const ConstMatrix<std::complex<double>, size_t, Layout::RowMajor>& A,
+          const ConstMatrix<std::complex<double>, size_t, Layout::RowMajor>& B,
+          std::complex<double> beta,
+          const Matrix<std::complex<double>, size_t, Layout::RowMajor>& C)
 {
     gemm_c_wrapper(transA, transB, alpha, A, B, beta, C);
 }

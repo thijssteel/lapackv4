@@ -7,20 +7,20 @@
 
 using namespace lapack_cpp;
 
-template <typename T>
+template <typename T, Layout layout = Layout::ColMajor>
 void test_blas(){
     int m = 3;
     int n = 2;
     int k = 1;
 
-    MemoryBlock<T> A_(m,k);
-    Matrix<T> A(m,k, A_);
+    MemoryBlock<T> A_(m,k, layout);
+    Matrix<T, size_t, layout> A(m,k, A_);
 
-    MemoryBlock<T> B_(k,n);
-    Matrix<T> B(k, n, B_);
+    MemoryBlock<T> B_(k,n, layout);
+    Matrix<T, size_t, layout> B(k, n, B_);
 
-    MemoryBlock<T> C_(m,n);
-    Matrix<T> C(m, n, C_);
+    MemoryBlock<T> C_(m,n, layout);
+    Matrix<T, size_t, layout> C(m, n, C_);
 
     randomize(A);
     randomize(B);
@@ -49,6 +49,11 @@ int main(){
     test_blas<std::complex<float>>();
     test_blas<double>();
     test_blas<std::complex<double>>();
+
+    test_blas<float, Layout::RowMajor>();
+    test_blas<std::complex<float>, Layout::RowMajor>();
+    test_blas<double, Layout::RowMajor>();
+    test_blas<std::complex<double>, Layout::RowMajor>();
 
 
     return 0;

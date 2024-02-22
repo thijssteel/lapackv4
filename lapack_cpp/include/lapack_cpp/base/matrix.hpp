@@ -41,7 +41,8 @@ class Matrix {
           ldim_(calc_ld<T, aligned>(layout == Layout::ColMajor ? m_ : n_)),
           data_(m_block.ptr())
     {
-        assert(m_block.size() >= ldim_ * (layout == Layout::ColMajor ? n_ : m_));
+        assert(m_block.size() >=
+               ldim_ * (layout == Layout::ColMajor ? n_ : m_));
     }
 
     // Constructor for a matrix of size m x n
@@ -52,7 +53,8 @@ class Matrix {
            const idx_t ldim)
         : m_(m), n_(n), ldim_(ldim), data_(m_block.ptr())
     {
-        assert(m_block.size() >= ldim_ * (layout == Layout::ColMajor ? n_ : m_));
+        assert(m_block.size() >=
+               ldim_ * (layout == Layout::ColMajor ? n_ : m_));
     }
 
     // Constructor for a matrix of size m x n
@@ -195,7 +197,8 @@ class ConstMatrix {
           ldim_(calc_ld<T, aligned>(layout == Layout::ColMajor ? m_ : n_)),
           data_(m_block.ptr())
     {
-        assert(m_block.size() >= ldim_ * (layout == Layout::ColMajor ? n_ : m_));
+        assert(m_block.size() >=
+               ldim_ * (layout == Layout::ColMajor ? n_ : m_));
     }
 
     // Constructor for a matrix of size m x n

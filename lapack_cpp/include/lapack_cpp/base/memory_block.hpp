@@ -55,8 +55,8 @@ class MemoryBlock {
 
     // Constructor for a block of sufficient size to store a matrix of size m x
     // n
-    MemoryBlock(idx_t m, idx_t n)
-        : n_(calc_ld<T, aligned>(m) * n),
+    MemoryBlock(idx_t m, idx_t n, Layout layout = Layout::ColMajor)
+        : n_(layout == Layout::ColMajor ? (calc_ld<T, aligned>(m) * n) : (calc_ld<T, aligned>(n) * m)),
           data_(aligned ? (T*)aligned_alloc(64, n_ * sizeof(T))
                         : (T*)malloc(n_ * sizeof(T)))
     {

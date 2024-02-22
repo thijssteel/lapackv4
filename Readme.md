@@ -72,7 +72,7 @@ In Fortran it would have the traditional interface:
 subroutine dgemv( trans, m, n, alpha, A, lda, x, incx, beta, y, incy )
 ```
 
-We keep all three interfaces intact at all times. Initially, this will be code written in Fortran, with C wrappers around it and C++ wrappers around the C wrappers. If a routine is rewritten in C++, we simply write C and Fortran wrappers around it. By developing this way, we can always keep the library in a "finished" state. Making it usable from the start. For relatively simple routines, like most of the BLAS routines, the wrappers will take more lines of core than the actual computational routines, but these are very simple wrappers that are easily implemented so their actual load on the programmer should not be too large.
+We keep all three interfaces intact at all times. Initially, this will be code written in Fortran, with C wrappers around it and C++ wrappers around the C wrappers. If a routine is rewritten in C++, we simply write C and Fortran wrappers around it. By developing this way, we can always keep the library in a "finished" state. Making it usable from the start. For relatively simple routines, like most of the BLAS routines, the wrappers will take more lines of code than the actual computational routines, but these are very simple wrappers that are easily implemented so their actual load on the programmer should not be too large.
 
 Note: because we consider adding support for row-major storage at a later stage, it may be necessary to add a layout argument to the C interface initially so that supporting row-major storage does not require an interface change.
 

@@ -28,8 +28,8 @@ void print(const Vector<T, idx_t>& v)
 }
 
 // Code for printing
-template <typename T, typename idx_t>
-void print(const Matrix<T, idx_t>& m)
+template <typename T, typename idx_t, Layout layout>
+void print(const Matrix<T, idx_t, layout>& m)
 {
     std::cout << "(" << m.num_rows() << "," << m.num_columns() << ")["
               << std::endl;
@@ -44,8 +44,8 @@ void print(const Matrix<T, idx_t>& m)
 }
 
 // Code for printing
-template <typename T, typename idx_t>
-void print(const ConstMatrix<T, idx_t>& m)
+template <typename T, typename idx_t, Layout layout>
+void print(const ConstMatrix<T, idx_t, layout>& m)
 {
     std::cout << "(" << m.num_rows() << "," << m.num_columns() << ")["
               << std::endl;
@@ -60,8 +60,8 @@ void print(const ConstMatrix<T, idx_t>& m)
 }
 
 // Initialize a matrix with random values
-template <typename T, typename idx_t>
-void randomize(Matrix<T, idx_t>& m)
+template <typename T, typename idx_t, Layout layout>
+void randomize(Matrix<T, idx_t, layout>& m)
 {
     for (idx_t j = 0; j < m.num_columns(); ++j) {
         for (idx_t i = 0; i < m.num_rows(); ++i) {

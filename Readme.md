@@ -89,11 +89,10 @@ We plan to keep the impact on current users minimal, but there are still some ch
 
 ### 6. This repository
 
-As a test for the interfaces, only the general matrix-matrix multiplication has been translated (gemm).
+As a test for the interfaces, only ```gemm``` and ```gemv``` have been translated.
 
-There are two examples: `test_gemm.cpp` and `test_gemm.f90`. The provided makefile will compile these into 4 files
-- test_gemm_fortran_fortran: example calls pure Fortran
-- test_gemm_fortran_cpp: example calls cpp code through Fortran interface
-- test_gemm_cpp_cpp: example calls pure cpp
-- test_gemm_cpp_fortran: example calls Fortran code through cpp interface. It is linked with BLAS via -lblas instead of the code in this repo. This is to illustrate the purpose of this interface. It can be used initially while there is no C++ implementation available or later when we want to link with optimized blas. Vendors could even provide their own C++ implementation.
+```gemm``` is fully translated, and has a cpp implementation, with accompanying wrappers to call the code from C and Fortran. However, to allow the usage of optimized BLAS, it is possible to use disable this code and instead use C wrappers around Fortran, this is achieved using the flag ```USE_FORTRAN_BLAS```.
 
+```gemv``` is not fully translated, only the wrappers to call the Fortran code from C and C++ are finished. Note that even if ```USE_FORTRAN_BLAS``` is false, ```gemv``` will call Fortran. The flag only has an effect on code that is translated to C++.
+
+Some examples can be found in the ```example/``` folder.

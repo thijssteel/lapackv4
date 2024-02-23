@@ -1,2 +1,4 @@
 test_gemm_fortran
 test_gemm_cpp
+test_gemv_fortran
+test_gemv_cpp

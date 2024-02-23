@@ -188,7 +188,7 @@ class ConstVector {
     /**
      * Return a pointer to the data of the vector.
      */
-    inline T* ptr() const { return data_; }
+    inline const T* ptr() const { return data_; }
 
    private:
     const idx_t n_;

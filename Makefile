@@ -19,10 +19,21 @@ OBJFILES = lapack_fortran/src/sgemm.o \
 		   lapack_fortran/src/zgemm.o \
 		   lapack_c/src/gemm_c.o \
 		   lapack_c/src/gemv_c.o \
+		   lapack_c/src/rot_c.o \
 		   lapack_cpp/src/gemm_cpp.o \
-		   lapack_cpp/src/gemv_cpp.o
+		   lapack_cpp/src/gemv_cpp.o \
+		   lapack_cpp/src/rot_cpp.o \
+		   lapack_fortran/src/zrot.o \
+		   lapack_fortran/src/crot.o \
 
 # Fortran files
+
+# Note: The linker can't find zrot and crot unless they are recompiled.
+lapack_fortran/src/crot.o: lapack_fortran/src/crot.f
+	$(FC) $(FFLAGS) -cpp -c -o $@ $<
+
+lapack_fortran/src/zrot.o: lapack_fortran/src/zrot.f
+	$(FC) $(FFLAGS) -cpp -c -o $@ $<
 
 lapack_fortran/src/%.o: lapack_fortran/src/%.f90
 	$(FC) $(FFLAGS) -cpp -c -o $@ $<

@@ -78,6 +78,6 @@ INSTANTIATE_GEMV(std::complex<double>, int, Layout::ColMajor)
 
 // Row major is not yet supported so don't instantiate it
 
-#undef INSTANTIATE_GEMM
+#undef INSTANTIATE_GEMV
 
 }  // namespace lapack_cpp

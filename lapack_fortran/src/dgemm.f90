@@ -1,3 +1,4 @@
+#ifndef USE_FORTRAN_BLAS
 ! Wrapper around dgemm defined in C
 subroutine dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
     use iso_c_binding, only: c_char
@@ -34,3 +35,4 @@ subroutine dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
     call lapack_c_dgemm(transa_to_c, transb_to_c, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
 
 end subroutine dgemm
+#endif

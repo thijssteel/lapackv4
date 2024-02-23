@@ -1,8 +1,6 @@
 #ifndef LAPACK_C_UTIL_H
 #define LAPACK_C_UTIL_H
 
-#include "lapack_c/mangling.h"
-
 // Define types for complex number
 #ifdef __cplusplus
 #include <complex>

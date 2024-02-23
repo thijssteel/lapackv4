@@ -1,3 +1,4 @@
+#ifndef USE_FORTRAN_BLAS
 ! Wrapper around zgemm defined in C
 subroutine zgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
     use iso_c_binding, only: c_char
@@ -34,3 +35,4 @@ subroutine zgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
     call lapack_c_zgemm(transa_to_c, transb_to_c, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
 
 end subroutine zgemm
+#endif

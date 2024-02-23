@@ -1,3 +1,5 @@
+#ifdef USE_FORTRAN_BLAS
+
 #include "lapack_cpp/blas/gemm.hpp"
 
 #include <cassert>
@@ -110,3 +112,5 @@ INSTANTIATE_GEMM(std::complex<double>, int, Layout::RowMajor)
 #undef INSTANTIATE_GEMM
 
 }  // namespace lapack_cpp
+
+#endif  // USE_FORTRAN_BLAS

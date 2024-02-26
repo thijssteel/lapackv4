@@ -9,6 +9,7 @@
 #include <iostream>
 #include <random>
 
+#include "lapack_cpp/base/enums.hpp"
 #include "lapack_cpp/base/memory_block.hpp"
 #include "lapack_cpp/base/vector.hpp"
 

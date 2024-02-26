@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <type_traits>
 
 namespace lapack_cpp {
@@ -51,6 +52,11 @@ class MemoryBlock {
                         : (T*)malloc(n_ * sizeof(T)))
     {
         assert(n >= 0);
+        #ifndef NDEBUG
+            // When debugging, fill the memory with NaNs
+            // This makes it easier to spot uninitialized memory
+            std::fill(data_, data_ + n_, NAN);
+        #endif
     }
 
     // Constructor for a block of sufficient size to store a matrix of size m x
@@ -62,6 +68,11 @@ class MemoryBlock {
     {
         assert(m >= 0);
         assert(n >= 0);
+        #ifndef NDEBUG
+            // When debugging, fill the memory with NaNs
+            // This makes it easier to spot uninitialized memory
+            std::fill(data_, data_ + n_, NAN);
+        #endif
     }
 
     // Non-owning constructor

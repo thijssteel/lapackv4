@@ -5,5 +5,6 @@
 #include "lapack_c/gemm.h"
 #include "lapack_c/gemv.h"
 #include "lapack_c/rot.h"
+#include "lapack_c/trsv.h"
 
 #endif

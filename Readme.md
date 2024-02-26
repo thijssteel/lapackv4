@@ -89,10 +89,12 @@ We plan to keep the impact on current users minimal, but there are still some ch
 
 ### 6. This repository
 
-As a test for the interfaces, only ```gemm``` and ```gemv``` have been translated.
+As a test for the interfaces, only ```gemm```, ```gemv```, and ```trsv``` have been translated.
 
 ```gemm``` is fully translated, and has a cpp implementation, with accompanying wrappers to call the code from C and Fortran. However, to allow the usage of optimized BLAS, it is possible to use disable this code and instead use C wrappers around Fortran, this is achieved using the flag ```USE_FORTRAN_BLAS```.
 
 ```gemv``` is not fully translated, only the wrappers to call the Fortran code from C and C++ are finished. Note that even if ```USE_FORTRAN_BLAS``` is false, ```gemv``` will call Fortran. The flag only has an effect on code that is translated to C++.
+
+```trsv``` is also not fully translated. This tests an alternative way to define the c wrappers. Instead of messing around with fortran name mangling in c and then defining a separate wrapper, the c wrapper is defined in fortran. This requires less code and is the "proper" way to mix languages according to the gfortran documentation.
 
 Some examples can be found in the ```example/``` folder.

@@ -37,6 +37,34 @@ inline constexpr Side char2side(char t)
     }
 }
 
+enum class Uplo : char { Upper = 'U', Lower = 'L' };
+
+inline constexpr Uplo char2uplo(char t)
+{
+    switch (t) {
+        case 'U':
+            return Uplo::Upper;
+        case 'R':
+            return Uplo::Lower;
+        default:
+            assert(false);
+    }
+}
+
+enum class Diag : char { Unit = 'U', NonUnit = 'N' };
+
+inline constexpr Diag char2diag(char t)
+{
+    switch (t) {
+        case 'U':
+            return Diag::Unit;
+        case 'N':
+            return Diag::NonUnit;
+        default:
+            assert(false);
+    }
+}
+
 }  // namespace lapack_cpp
 
 #endif  // LAPACK_CPP_ENUMP_HPP

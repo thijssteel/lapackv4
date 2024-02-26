@@ -6,6 +6,7 @@
 #include <cassert>
 #include <chrono>
 
+#include "lapack_cpp/base/enums.hpp"
 #include "lapack_cpp/base/memory_block.hpp"
 
 namespace lapack_cpp {

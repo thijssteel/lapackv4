@@ -1,8 +1,8 @@
 CXX=g++
-CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -g -DUSE_FORTRAN_BLAS
+CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -g
 
 FC=gfortran
-FFLAGS=-Wall -Wextra -pedantic -g -DUSE_FORTRAN_BLAS
+FFLAGS=-Wall -Wextra -pedantic -g
 
 all: ./example/test_gemm_fortran ./example/test_gemm_cpp ./example/test_gemv_cpp ./example/test_gemv_fortran ./example/test_trsv_cpp ./example/test_geqrf_cpp
 

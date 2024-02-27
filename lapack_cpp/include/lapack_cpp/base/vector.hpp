@@ -12,7 +12,7 @@
 namespace lapack_cpp {
 
 // Forward declaration of ConstVector
-template <typename T, typename idx_t = size_t>
+template <typename T, typename idx_t = lapack_idx_t>
 class ConstVector;
 
 /**
@@ -21,7 +21,7 @@ class ConstVector;
  * @tparam T this is a template parameter that specifies the type of the
  *           elements of the vector.
  */
-template <typename T, typename idx_t = size_t>
+template <typename T, typename idx_t = lapack_idx_t>
 class Vector {
    public:
     typedef T value_type;

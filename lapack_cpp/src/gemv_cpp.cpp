@@ -16,10 +16,10 @@ namespace lapack_cpp {
  * @param B
  * @param C
  */
-template <typename T, typename idx_t, Layout layout>
+template <typename T, Layout layout, typename idx_t>
 inline void gemv_c_wrapper(Op trans,
                            T alpha,
-                           const ConstMatrix<T, idx_t, layout>& A,
+                           const ConstMatrix<T, layout, idx_t>& A,
                            const ConstVector<T, idx_t>& x,
                            T beta,
                            const Vector<T, idx_t>& y)
@@ -60,17 +60,17 @@ inline void gemv_c_wrapper(Op trans,
 // repetition.
 #define INSTANTIATE_GEMV(T, idx_t, layout)                               \
     template <>                                                          \
-    void gemv(Op trans, T alpha, const ConstMatrix<T, idx_t, layout>& A, \
+    void gemv(Op trans, T alpha, const ConstMatrix<T, layout, idx_t>& A, \
               const ConstVector<T, idx_t>& x, T beta,                    \
               const Vector<T, idx_t>& y)                                 \
     {                                                                    \
         gemv_c_wrapper(trans, alpha, A, x, beta, y);                     \
     }
 
-INSTANTIATE_GEMV(float, size_t, Layout::ColMajor)
-INSTANTIATE_GEMV(double, size_t, Layout::ColMajor)
-INSTANTIATE_GEMV(std::complex<float>, size_t, Layout::ColMajor)
-INSTANTIATE_GEMV(std::complex<double>, size_t, Layout::ColMajor)
+INSTANTIATE_GEMV(float, lapack_idx_t, Layout::ColMajor)
+INSTANTIATE_GEMV(double, lapack_idx_t, Layout::ColMajor)
+INSTANTIATE_GEMV(std::complex<float>, lapack_idx_t, Layout::ColMajor)
+INSTANTIATE_GEMV(std::complex<double>, lapack_idx_t, Layout::ColMajor)
 INSTANTIATE_GEMV(float, int, Layout::ColMajor)
 INSTANTIATE_GEMV(double, int, Layout::ColMajor)
 INSTANTIATE_GEMV(std::complex<float>, int, Layout::ColMajor)

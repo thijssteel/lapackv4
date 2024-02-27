@@ -50,10 +50,10 @@ inline void rot_c_wrapper(const Vector<T, idx_t>& x,
         rot_c_wrapper(x, y, c, s);                                           \
     }
 
-INSTANTIATE_ROT(float, float, size_t)
-INSTANTIATE_ROT(double, double, size_t)
-INSTANTIATE_ROT(std::complex<float>, float, size_t)
-INSTANTIATE_ROT(std::complex<double>, double, size_t)
+INSTANTIATE_ROT(float, float, lapack_idx_t)
+INSTANTIATE_ROT(double, double, lapack_idx_t)
+INSTANTIATE_ROT(std::complex<float>, float, lapack_idx_t)
+INSTANTIATE_ROT(std::complex<double>, double, lapack_idx_t)
 INSTANTIATE_ROT(float, float, int)
 INSTANTIATE_ROT(double, double, int)
 INSTANTIATE_ROT(std::complex<float>, float, int)

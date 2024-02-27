@@ -8,11 +8,11 @@ namespace lapack_cpp {
 /**
  * Solve a triangular system of equations.
  */
-template <typename T, typename idx_t, Layout layout>
+template <typename T, Layout layout, typename idx_t>
 void trsv(Uplo uplo,
           Op trans,
           Diag diag,
-          const ConstMatrix<T, idx_t, layout>& A,
+          const ConstMatrix<T, layout, idx_t>& A,
           const Vector<T, idx_t>& x);
 
 }  // namespace lapack_cpp

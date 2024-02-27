@@ -9,6 +9,7 @@
 #include <iostream>
 #include <random>
 
+#include "lapack_cpp/base/types.hpp"
 #include "lapack_cpp/base/enums.hpp"
 #include "lapack_cpp/base/memory_block.hpp"
 #include "lapack_cpp/base/vector.hpp"
@@ -16,7 +17,7 @@
 namespace lapack_cpp {
 
 // Forward declaration of ConstMatrix
-template <typename T, typename idx_t = size_t, Layout layout = Layout::ColMajor>
+template <typename T, Layout layout = Layout::ColMajor, typename idx_t = lapack_idx_t>
 class ConstMatrix;
 
 /**
@@ -27,7 +28,7 @@ class ConstMatrix;
  * @tparam T this is a template parameter that specifies the type of the
  *           elements of the vector.
  */
-template <typename T, typename idx_t = size_t, Layout layout = Layout::ColMajor>
+template <typename T, Layout layout = Layout::ColMajor, typename idx_t = lapack_idx_t>
 class Matrix {
    public:
     typedef T value_type;
@@ -39,7 +40,7 @@ class Matrix {
            const MemoryBlock<T, idx_t, aligned>& m_block)
         : m_(m),
           n_(n),
-          ldim_(calc_ld<T, aligned>(layout == Layout::ColMajor ? m_ : n_)),
+          ldim_(calc_ld<T, idx_t, aligned>(layout == Layout::ColMajor ? m_ : n_)),
           data_(m_block.ptr())
     {
         assert(m_block.size() >=
@@ -71,9 +72,9 @@ class Matrix {
     {}
 
     // Make a const promotion of the matrix
-    ConstMatrix<T, idx_t, layout> as_const() const
+    ConstMatrix<T, layout, idx_t> as_const() const
     {
-        return ConstMatrix<T, idx_t, layout>(m_, n_, data_, ldim_);
+        return ConstMatrix<T, layout, idx_t>(m_, n_, data_, ldim_);
     }
 
     // Assignment operator
@@ -183,7 +184,7 @@ class Matrix {
     T* data_;
 };
 
-template <typename T, typename idx_t, Layout layout>
+template <typename T, Layout layout, typename idx_t >
 class ConstMatrix {
    public:
     typedef T value_type;
@@ -195,7 +196,7 @@ class ConstMatrix {
                 const MemoryBlock<T, idx_t, aligned>& m_block)
         : m_(m),
           n_(n),
-          ldim_(calc_ld<T, aligned>(layout == Layout::ColMajor ? m_ : n_)),
+          ldim_(calc_ld<T, idx_t, aligned>(layout == Layout::ColMajor ? m_ : n_)),
           data_(m_block.ptr())
     {
         assert(m_block.size() >=
@@ -227,7 +228,7 @@ class ConstMatrix {
     {}
 
     // Const promotion constructor
-    ConstMatrix(const Matrix<T, idx_t, layout>& m)
+    ConstMatrix(const Matrix<T, layout, idx_t>& m)
         : m_(m.num_rows()), n_(m.num_columns()), ldim_(m.ldim()), data_(m.ptr())
     {}
 

@@ -14,13 +14,13 @@ void test_blas(){
     int k = 1;
 
     MemoryBlock<T> A_(m,k, layout);
-    Matrix<T, size_t, layout> A(m,k, A_);
+    Matrix<T, layout> A(m,k, A_);
 
     MemoryBlock<T> B_(k,n, layout);
-    Matrix<T, size_t, layout> B(k, n, B_);
+    Matrix<T, layout> B(k, n, B_);
 
     MemoryBlock<T> C_(m,n, layout);
-    Matrix<T, size_t, layout> C(m, n, C_);
+    Matrix<T, layout> C(m, n, C_);
 
     randomize(A);
     randomize(B);

@@ -1,3 +1,4 @@
+#define USE_FORTRAN_BLAS
 #ifdef USE_FORTRAN_BLAS
 
 #include "lapack_cpp/blas/gemm.hpp"
@@ -19,25 +20,25 @@ namespace lapack_cpp {
  * @param B
  * @param C
  */
-template <typename T, typename idx_t, Layout layout>
+template <typename T, Layout layout, typename idx_t>
 inline void gemm_c_wrapper(Op transA,
                            Op transB,
                            T alpha,
-                           const ConstMatrix<T, idx_t, layout>& A,
-                           const ConstMatrix<T, idx_t, layout>& B,
+                           const ConstMatrix<T, layout, idx_t>& A,
+                           const ConstMatrix<T, layout, idx_t>& B,
                            T beta,
-                           const Matrix<T, idx_t, layout>& C)
+                           const Matrix<T, layout, idx_t>& C)
 {
     if (layout == Layout::RowMajor) {
         // Row-major -> Col-major = Transpose
         // C = alpha * A * B + beta * C -> C^T = alpha * B^T * A^T + beta * C^T
         // Reinterpret A and B as column-major and call gemm with switched
         // arguments
-        ConstMatrix<T, idx_t, Layout::ColMajor> A_t(
+        ConstMatrix<T, Layout::ColMajor, idx_t> A_t(
             A.num_columns(), A.num_rows(), A.ptr(), A.ldim());
-        ConstMatrix<T, idx_t, Layout::ColMajor> B_t(
+        ConstMatrix<T, Layout::ColMajor, idx_t> B_t(
             B.num_columns(), B.num_rows(), B.ptr(), B.ldim());
-        Matrix<T, idx_t, Layout::ColMajor> C_t(C.num_columns(), C.num_rows(),
+        Matrix<T, Layout::ColMajor, idx_t> C_t(C.num_columns(), C.num_rows(),
                                                C.ptr(), C.ldim());
         gemm_c_wrapper(transB, transA, alpha, B_t, A_t, beta, C_t);
         return;
@@ -84,26 +85,26 @@ inline void gemm_c_wrapper(Op transA,
 #define INSTANTIATE_GEMM(T, idx_t, layout)                    \
     template <>                                               \
     void gemm(Op transA, Op transB, T alpha,                  \
-              const ConstMatrix<T, idx_t, layout>& A,         \
-              const ConstMatrix<T, idx_t, layout>& B, T beta, \
-              const Matrix<T, idx_t, layout>& C)              \
+              const ConstMatrix<T, layout, idx_t>& A,         \
+              const ConstMatrix<T, layout, idx_t>& B, T beta, \
+              const Matrix<T, layout, idx_t>& C)              \
     {                                                         \
         gemm_c_wrapper(transA, transB, alpha, A, B, beta, C); \
     }
 
-INSTANTIATE_GEMM(float, size_t, Layout::ColMajor)
-INSTANTIATE_GEMM(double, size_t, Layout::ColMajor)
-INSTANTIATE_GEMM(std::complex<float>, size_t, Layout::ColMajor)
-INSTANTIATE_GEMM(std::complex<double>, size_t, Layout::ColMajor)
+INSTANTIATE_GEMM(float, lapack_idx_t, Layout::ColMajor)
+INSTANTIATE_GEMM(double, lapack_idx_t, Layout::ColMajor)
+INSTANTIATE_GEMM(std::complex<float>, lapack_idx_t, Layout::ColMajor)
+INSTANTIATE_GEMM(std::complex<double>, lapack_idx_t, Layout::ColMajor)
 INSTANTIATE_GEMM(float, int, Layout::ColMajor)
 INSTANTIATE_GEMM(double, int, Layout::ColMajor)
 INSTANTIATE_GEMM(std::complex<float>, int, Layout::ColMajor)
 INSTANTIATE_GEMM(std::complex<double>, int, Layout::ColMajor)
 
-INSTANTIATE_GEMM(float, size_t, Layout::RowMajor)
-INSTANTIATE_GEMM(double, size_t, Layout::RowMajor)
-INSTANTIATE_GEMM(std::complex<float>, size_t, Layout::RowMajor)
-INSTANTIATE_GEMM(std::complex<double>, size_t, Layout::RowMajor)
+INSTANTIATE_GEMM(float, lapack_idx_t, Layout::RowMajor)
+INSTANTIATE_GEMM(double, lapack_idx_t, Layout::RowMajor)
+INSTANTIATE_GEMM(std::complex<float>, lapack_idx_t, Layout::RowMajor)
+INSTANTIATE_GEMM(std::complex<double>, lapack_idx_t, Layout::RowMajor)
 INSTANTIATE_GEMM(float, int, Layout::RowMajor)
 INSTANTIATE_GEMM(double, int, Layout::RowMajor)
 INSTANTIATE_GEMM(std::complex<float>, int, Layout::RowMajor)

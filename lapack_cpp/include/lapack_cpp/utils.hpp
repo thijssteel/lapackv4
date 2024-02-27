@@ -8,28 +8,20 @@
 
 namespace lapack_cpp {
 
-// declare conj for real types
-template <typename T,
-          std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
-inline T conj(const T& x)
-{
-    return x;
-}
-
 // Code for printing
 template <typename T, typename idx_t>
 void print(const Vector<T, idx_t>& v)
 {
     std::cout << "(" << v.size() << ")[" << std::endl;
-    for (size_t i = 0; i < v.size(); ++i) {
+    for (idx_t i = 0; i < v.size(); ++i) {
         std::cout << v[i] << std::endl;
     }
     std::cout << "]" << std::endl;
 }
 
 // Code for printing
-template <typename T, typename idx_t, Layout layout>
-void print(const Matrix<T, idx_t, layout>& m)
+template <typename T, Layout layout, typename idx_t>
+void print(const Matrix<T, layout, idx_t>& m)
 {
     std::cout << "(" << m.num_rows() << "," << m.num_columns() << ")["
               << std::endl;
@@ -44,8 +36,8 @@ void print(const Matrix<T, idx_t, layout>& m)
 }
 
 // Code for printing
-template <typename T, typename idx_t, Layout layout>
-void print(const ConstMatrix<T, idx_t, layout>& m)
+template <typename T, Layout layout, typename idx_t>
+void print(const ConstMatrix<T, layout, idx_t>& m)
 {
     std::cout << "(" << m.num_rows() << "," << m.num_columns() << ")["
               << std::endl;
@@ -60,8 +52,8 @@ void print(const ConstMatrix<T, idx_t, layout>& m)
 }
 
 // Initialize a matrix with random values
-template <typename T, typename idx_t, Layout layout>
-void randomize(Matrix<T, idx_t, layout>& m)
+template <typename T, Layout layout, typename idx_t>
+void randomize(Matrix<T, layout, idx_t>& m)
 {
     for (idx_t j = 0; j < m.num_columns(); ++j) {
         for (idx_t i = 0; i < m.num_rows(); ++i) {

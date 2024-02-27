@@ -20,8 +20,8 @@ namespace lapack_cpp {
  * @param m
  * @return int
  */
-template <typename T, bool aligned = true>
-inline constexpr int calc_ld(const int m)
+template <typename T, typename idx_t, bool aligned = true>
+inline constexpr idx_t calc_ld(const idx_t m)
 {
     if (aligned)
         return ((m - 1 + (64 / sizeof(T))) / (64 / sizeof(T))) *
@@ -42,7 +42,7 @@ inline constexpr int calc_ld(const int m)
  * double* data = A.ptr();
  * data[0] = 1.0; // This is allowed
  */
-template <typename T, typename idx_t = size_t, bool aligned = true>
+template <typename T, typename idx_t = lapack_idx_t, bool aligned = true>
 class MemoryBlock {
    public:
     // Constructor for a block of size n
@@ -62,7 +62,7 @@ class MemoryBlock {
     // Constructor for a block of sufficient size to store a matrix of size m x
     // n
     MemoryBlock(idx_t m, idx_t n, Layout layout = Layout::ColMajor)
-        : n_(layout == Layout::ColMajor ? (calc_ld<T, aligned>(m) * n) : (calc_ld<T, aligned>(n) * m)),
+        : n_(layout == Layout::ColMajor ? (calc_ld<T, idx_t, aligned>(m) * n) : (calc_ld<T, idx_t, aligned>(n) * m)),
           data_(aligned ? (T*)aligned_alloc(64, n_ * sizeof(T))
                         : (T*)malloc(n_ * sizeof(T)))
     {
@@ -102,7 +102,7 @@ class MemoryBlock {
     // Memory block that remains after creating a vector of size n
     MemoryBlock remainder(idx_t n) const
     {
-        idx_t size = calc_ld<T, aligned>(n);
+        idx_t size = calc_ld<T, idx_t, aligned>(n);
         assert(size <= n_);
         return MemoryBlock(n_ - n, data_ + n);
     }
@@ -110,7 +110,7 @@ class MemoryBlock {
     // Memory block that remains after creating a vector of size n
     MemoryBlock remainder(idx_t m, idx_t n) const
     {
-        idx_t size = calc_ld<T, aligned>(calc_ld<T>(m) * n);
+        idx_t size = calc_ld<T, idx_t, aligned>(calc_ld<T, idx_t, aligned>(m) * n);
         assert(size <= n_);
         return MemoryBlock(n_ - size, data_ + size);
     }

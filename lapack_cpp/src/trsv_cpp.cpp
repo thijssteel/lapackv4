@@ -16,11 +16,11 @@ namespace lapack_cpp {
  * @param B
  * @param C
  */
-template <typename T, typename idx_t, Layout layout>
+template <typename T, Layout layout, typename idx_t>
 inline void trsv_c_wrapper(Uplo uplo,
                            Op trans,
                            Diag diag,
-                           const ConstMatrix<T, idx_t, layout>& A,
+                           const ConstMatrix<T, layout, idx_t>& A,
                            const Vector<T, idx_t>& x)
 {
     static_assert(layout == Layout::ColMajor);
@@ -54,16 +54,16 @@ inline void trsv_c_wrapper(Uplo uplo,
 #define INSTANTIATE_TRSV(T, idx_t, layout)            \
     template <>                                       \
     void trsv(Uplo uplo, Op trans, Diag diag,         \
-              const ConstMatrix<T, idx_t, layout>& A, \
+              const ConstMatrix<T, layout, idx_t>& A, \
               const Vector<T, idx_t>& x)              \
     {                                                 \
         trsv_c_wrapper(uplo, trans, diag, A, x);  \
     }
 
-INSTANTIATE_TRSV(float, size_t, Layout::ColMajor)
-INSTANTIATE_TRSV(double, size_t, Layout::ColMajor)
-INSTANTIATE_TRSV(std::complex<float>, size_t, Layout::ColMajor)
-INSTANTIATE_TRSV(std::complex<double>, size_t, Layout::ColMajor)
+INSTANTIATE_TRSV(float, lapack_idx_t, Layout::ColMajor)
+INSTANTIATE_TRSV(double, lapack_idx_t, Layout::ColMajor)
+INSTANTIATE_TRSV(std::complex<float>, lapack_idx_t, Layout::ColMajor)
+INSTANTIATE_TRSV(std::complex<double>, lapack_idx_t, Layout::ColMajor)
 INSTANTIATE_TRSV(float, int, Layout::ColMajor)
 INSTANTIATE_TRSV(double, int, Layout::ColMajor)
 INSTANTIATE_TRSV(std::complex<float>, int, Layout::ColMajor)

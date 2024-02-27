@@ -2,7 +2,6 @@
 #define LAPACK_CPP_GEMM_HPP
 
 #include "lapack_cpp/base.hpp"
-#include "lapack_cpp/utils.hpp"
 namespace lapack_cpp {
 
 /**
@@ -13,14 +12,14 @@ namespace lapack_cpp {
  * @param B
  * @param C
  */
-template <typename T, typename idx_t, Layout layout>
+template <typename T, Layout layout, typename idx_t>
 void gemm(Op transA,
           Op transB,
           T alpha,
-          const ConstMatrix<T, idx_t, layout>& A,
-          const ConstMatrix<T, idx_t, layout>& B,
+          const ConstMatrix<T, layout, idx_t>& A,
+          const ConstMatrix<T, layout, idx_t>& B,
           T beta,
-          const Matrix<T, idx_t, layout>& C)
+          const Matrix<T, layout, idx_t>& C)
 {
     // TODO: Add checks for the dimensions of A, B, and C
     T zero = 0.;

@@ -1,4 +1,3 @@
-#define USE_FORTRAN_BLAS
 #ifdef USE_FORTRAN_BLAS
 
 #include "lapack_cpp/blas/gemm.hpp"

@@ -3,3 +3,4 @@ test_gemm_cpp
 test_gemv_fortran
 test_gemv_cpp
 test_trsv_cpp
+test_geqrf_cpp

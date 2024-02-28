@@ -65,6 +65,20 @@ inline constexpr Diag char2diag(char t)
     }
 }
 
+enum class Direction : char { Forward = 'F', Backward = 'B' };
+
+inline constexpr Direction char2direct(char t)
+{
+    switch (t) {
+        case 'F':
+            return Direction::Forward;
+        case 'N':
+            return Direction::Backward;
+        default:
+            assert(false);
+    }
+}
+
 }  // namespace lapack_cpp
 
 #endif  // LAPACK_CPP_ENUMP_HPP

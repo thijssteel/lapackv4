@@ -139,7 +139,7 @@ class Matrix {
     }
 
     /**
-     * Return a column of matrix as a vector
+     * Return a column of the matrix as a vector
      *
      * @param i index of the column
      */
@@ -154,7 +154,7 @@ class Matrix {
     }
 
     /**
-     * Return a row of matrix as a vector
+     * Return a row of the matrix as a vector
      *
      * @param i index of the row
      */

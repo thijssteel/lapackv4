@@ -31,14 +31,15 @@ void gemm(Op transA,
 
     if (m == 0 || n == 0 || k == 0) return;
 
-    if (alpha == zero) {
-        if (beta == zero) {
-            for (idx_t j = 0; j < n; ++j) {
-                for (idx_t i = 0; i < m; ++i)
-                    C(i, j) = zero;
-            }
+    if (beta == zero) {
+        for (idx_t j = 0; j < n; ++j) {
+            for (idx_t i = 0; i < m; ++i)
+                C(i, j) = zero;
         }
-        else if (beta != one) {
+    }
+
+    if (alpha == zero) {
+        if (beta != zero and beta != one) {
             for (idx_t j = 0; j < n; ++j) {
                 for (idx_t i = 0; i < m; ++i)
                     C(i, j) *= beta;

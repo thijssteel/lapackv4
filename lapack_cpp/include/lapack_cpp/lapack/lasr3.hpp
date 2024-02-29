@@ -436,7 +436,7 @@ void lasr3_kernel_forward_right(ConstMatrix<TC, layout, idx_t> C,
     // Startup phase
     for (idx_t j = 0; j + 1 < k; ++j) {
         for (idx_t i = 0, g = j; i < j + 1; ++i, --g) {
-            rot(A_pack.column(g), A_pack.column(g + 1), C(g, i), S(g, i));
+            rot(A_pack.column(g), A_pack.column(g + 1), C(g, i), conj(S(g, i)));
         }
     }
 
@@ -448,9 +448,9 @@ void lasr3_kernel_forward_right(ConstMatrix<TC, layout, idx_t> C,
             auto a3 = A_pack.column((g + 1 + i_pack - i_pack2 + np) % np);
             auto a4 = A_pack.column((g + 2 + i_pack - i_pack2 + np) % np);
 
-            rot_fuse2x2(a1, a2, a3, a4, C(g, i), S(g, i), C(g - 1, i + 1),
-                        S(g - 1, i + 1), C(g + 1, i), S(g + 1, i), C(g, i + 1),
-                        S(g, i + 1));
+            rot_fuse2x2(a1, a2, a3, a4, C(g, i), conj(S(g, i)), C(g - 1, i + 1),
+                        conj(S(g - 1, i + 1)), C(g + 1, i), conj(S(g + 1, i)),
+                        C(g, i + 1), conj(S(g, i + 1)));
         }
         if (k % 2 == 1) {
             // k is odd, so there are two more rotations to apply
@@ -461,7 +461,8 @@ void lasr3_kernel_forward_right(ConstMatrix<TC, layout, idx_t> C,
             auto a2 = A_pack.column((g + 1 + i_pack - i_pack2 + np) % np);
             auto a3 = A_pack.column((g + 2 + i_pack - i_pack2 + np) % np);
 
-            rot_fuse2x1(a1, a2, a3, C(g, i), S(g, i), C(g + 1, i), S(g + 1, i));
+            rot_fuse2x1(a1, a2, a3, C(g, i), conj(S(g, i)), C(g + 1, i),
+                        conj(S(g + 1, i)));
         }
         // columns i_pack and i_pack+1 of A_pack are finished, copy them back
         // to A
@@ -492,7 +493,7 @@ void lasr3_kernel_forward_right(ConstMatrix<TC, layout, idx_t> C,
         for (idx_t i = j, g = n - 2; i < k; ++i, --g) {
             auto a1 = A_pack.column((g + i_pack - i_pack2 + np) % np);
             auto a2 = A_pack.column((g + 1 + i_pack - i_pack2 + np) % np);
-            rot(a1, a2, C(g, i), S(g, i));
+            rot(a1, a2, C(g, i), conj(S(g, i)));
         }
     }
 
@@ -507,9 +508,9 @@ void lasr3_kernel_forward_right(ConstMatrix<TC, layout, idx_t> C,
 // Kernel for lasr3, backward right variant
 template <typename T, typename TC, typename TS, Layout layout, typename idx_t>
 void lasr3_kernel_backward_right(ConstMatrix<TC, layout, idx_t> C,
-                                ConstMatrix<TS, layout, idx_t> S,
-                                Matrix<T, layout, idx_t> A,
-                                MemoryBlock<T, idx_t, true> work)
+                                 ConstMatrix<TS, layout, idx_t> S,
+                                 Matrix<T, layout, idx_t> A,
+                                 MemoryBlock<T, idx_t, true> work)
 {
     idx_t m = A.num_rows();
     idx_t n = A.num_columns();
@@ -547,7 +548,7 @@ void lasr3_kernel_backward_right(ConstMatrix<TC, layout, idx_t> C,
     for (idx_t j = 0; j + 1 < k; ++j) {
         for (idx_t i = 0, g = n - 2 - j; i < j + 1; ++i, ++g) {
             rot(A_pack.column((g - i_pack2) % np),
-                A_pack.column((g + 1 - i_pack2) % np), C(g, i), S(g, i));
+                A_pack.column((g + 1 - i_pack2) % np), C(g, i), conj(S(g, i)));
         }
     }
 
@@ -559,9 +560,9 @@ void lasr3_kernel_backward_right(ConstMatrix<TC, layout, idx_t> C,
             auto a3 = A_pack.column((g + 1 + i_pack - i_pack2) % np);
             auto a4 = A_pack.column((g + 2 + i_pack - i_pack2) % np);
 
-            rot_fuse2x2(a1, a2, a3, a4, C(g, i), S(g, i), C(g - 1, i),
-                        S(g - 1, i), C(g + 1, i + 1), S(g + 1, i + 1),
-                        C(g, i + 1), S(g, i + 1));
+            rot_fuse2x2(a1, a2, a3, a4, C(g, i), conj(S(g, i)), C(g - 1, i),
+                        conj(S(g - 1, i)), C(g + 1, i + 1),
+                        conj(S(g + 1, i + 1)), C(g, i + 1), conj(S(g, i + 1)));
         }
         if (k % 2 == 1) {
             // k is odd, so there are two more rotations to apply
@@ -572,25 +573,26 @@ void lasr3_kernel_backward_right(ConstMatrix<TC, layout, idx_t> C,
             auto a2 = A_pack.column((g + i_pack - i_pack2 + np) % np);
             auto a3 = A_pack.column((g + 1 + i_pack - i_pack2 + np) % np);
 
-            rot_fuse1x2(a1, a2, a3, C(g, i), S(g, i), C(g - 1, i), S(g - 1, i));
+            rot_fuse1x2(a1, a2, a3, C(g, i), conj(S(g, i)), C(g - 1, i),
+                        conj(S(g - 1, i)));
         }
         // columns i_pack+np-2 and i_pack+np-1 are finished, copy them back to A
         for (idx_t i = 0; i < m; i++) {
-            A(i,i_pack2 + np - 2) = A_pack(i,(i_pack + np - 2) % np);
-            A(i,i_pack2 + np - 1) = A_pack(i,(i_pack + np - 1) % np);
+            A(i, i_pack2 + np - 2) = A_pack(i, (i_pack + np - 2) % np);
+            A(i, i_pack2 + np - 1) = A_pack(i, (i_pack + np - 1) % np);
         }
         // Pack next rows and update i_pack and i_pack2
         if (i_pack2 > 1) {
             for (idx_t i = 0; i < m; i++) {
-                A_pack(i,(i_pack + np - 2) % np) = A(i,i_pack2 - 2);
-                A_pack(i,(i_pack + np - 1) % np) = A(i,i_pack2 - 1);
+                A_pack(i, (i_pack + np - 2) % np) = A(i, i_pack2 - 2);
+                A_pack(i, (i_pack + np - 1) % np) = A(i, i_pack2 - 1);
             }
             i_pack = (i_pack + np - 2) % np;
             i_pack2 -= 2;
         }
         else if (i_pack2 > 0) {
             for (idx_t i = 0; i < m; i++) {
-                A_pack(i,(i_pack + np - 1) % np) = A(i,i_pack2 - 1);
+                A_pack(i, (i_pack + np - 1) % np) = A(i, i_pack2 - 1);
             }
             i_pack = (i_pack + np - 1) % np;
             i_pack2 -= 1;
@@ -605,7 +607,7 @@ void lasr3_kernel_backward_right(ConstMatrix<TC, layout, idx_t> C,
         for (idx_t i = j, g = 0; i < k; ++i, ++g) {
             auto a1 = A_pack.column((g + i_pack - i_pack2 + np) % np);
             auto a2 = A_pack.column((g + 1 + i_pack - i_pack2 + np) % np);
-            rot(a1, a2, C(g, i), S(g, i));
+            rot(a1, a2, C(g, i), conj(S(g, i)));
         }
     }
 
@@ -658,7 +660,6 @@ void lasr3(Side side,
         // TODO: do blocking
         lasr3_kernel_backward_right(C, S, A, work);
     }
-
 }
 
 }  // namespace lapack_cpp

@@ -62,6 +62,17 @@ void randomize(Matrix<T, layout, idx_t>& m)
     }
 }
 
+template <typename T, Layout layout, typename idx_t>
+void randomize(Matrix<std::complex<T>, layout, idx_t>& m)
+{
+    for (idx_t j = 0; j < m.num_columns(); ++j) {
+        for (idx_t i = 0; i < m.num_rows(); ++i) {
+            m(i, j) = std::complex<T>((T)rand() / (T)RAND_MAX,
+                                      (T)rand() / (T)RAND_MAX);
+        }
+    }
+}
+
 // Initialize a vector with random values
 template <typename T, typename idx_t>
 void randomize(Vector<T, idx_t>& v)

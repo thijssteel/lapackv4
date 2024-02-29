@@ -9,12 +9,9 @@ using namespace lapack_cpp;
 template <typename T,
           Layout layout = Layout::ColMajor,
           typename idx_t = lapack_idx_t>
-void test_lasr3(idx_t m, idx_t n, idx_t k)
+void test_lasr3(idx_t m, idx_t n, idx_t k, Side side, Direction direction)
 {
-
-    Direction direction = Direction::Forward;
-    Side side = Side::Left;
-    idx_t n_rot = m - 1;
+    idx_t n_rot = side == Side::Left ? m - 1 : n - 1;
 
     MemoryBlock<T, idx_t> A_(m, n);
     Matrix<T, layout, idx_t> A(m, n, A_);
@@ -45,26 +42,61 @@ void test_lasr3(idx_t m, idx_t n, idx_t k)
     A_copy = A;
 
     // Apply rotations using simple loops as test
-    for( idx_t i = 0; i < k; ++i )
-    {
-        for( idx_t j = 0; j < n_rot; ++j )
-        {
-            rot( A_copy.row(j), A_copy.row(j+1), C(j,i), S(j,i));
+    if (side == Side::Left) {
+        if (direction == Direction::Forward) {
+            for (idx_t i = 0; i < k; ++i)
+                for (idx_t j = 0; j < n_rot; ++j)
+                    rot(A_copy.row(j), A_copy.row(j + 1), C(j, i), S(j, i));
+        }
+        else {
+            for (idx_t i = 0; i < k; ++i)
+                for (idx_t j = n_rot - 1; j >= 0; --j)
+                    rot(A_copy.row(j), A_copy.row(j + 1), C(j, i), S(j, i));
         }
     }
-    print(A_copy);
+    else {
+        if (direction == Direction::Forward) {
+            for (idx_t i = 0; i < k; ++i)
+                for (idx_t j = 0; j < n_rot; ++j)
+                    rot(A_copy.column(j), A_copy.column(j + 1), C(j, i),
+                        S(j, i));
+        }
+        else {
+            for (idx_t i = 0; i < k; ++i)
+                for (idx_t j = n_rot - 1; j >= 0; --j)
+                    rot(A_copy.column(j), A_copy.column(j + 1), C(j, i),
+                        S(j, i));
+        }
+    }
 
-
-    MemoryBlock<T, idx_t, true> work(k+2, n, Layout::RowMajor);
+    MemoryBlock<T, idx_t, true> work(k + 2, n, Layout::RowMajor);
 
     lasr3(side, direction, C.as_const(), S.as_const(), A, work);
 
-    print(A);
+    // Check that the result is the same
+    for (idx_t i = 0; i < m; ++i)
+        for (idx_t j = 0; j < n; ++j)
+            A_copy(i, j) -= A(i, j);
+
+    print(A_copy);
 }
 
 int main()
 {
-    test_lasr3<float, Layout::ColMajor, lapack_idx_t>(4, 1, 1);
-    test_lasr3<float, Layout::ColMajor, lapack_idx_t>(5, 2, 2);
+    typedef lapack_idx_t idx_t;
+
+    for (idx_t n_rot = 3; n_rot < 10; ++n_rot) {
+        for (idx_t k = 1; k <= 2; k++) {
+            std::cout << "n_rot = " << n_rot << ", k = " << k << std::endl;
+            test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
+                n_rot + 1, 1, k, Side::Left, Direction::Forward);
+            // test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
+            //     n_rot + 1, n_rot + 1, k, Side::Right, Direction::Forward);
+            test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
+                n_rot + 1, 1, k, Side::Left, Direction::Backward);
+            // test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
+            //     n_rot + 1, n_rot + 1, k, Side::Right, Direction::Backward);
+        }
+    }
     return 0;
 }

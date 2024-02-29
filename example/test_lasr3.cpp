@@ -69,18 +69,24 @@ void test_lasr3(idx_t m, idx_t n, idx_t k, Side side, Direction direction)
         }
     }
 
-    MemoryBlock<T, idx_t, true> work(
-        side == Side::Left ? k + 2 : m, side == Side::Left ? n : k + 2,
-        side == Side::Left ? Layout::RowMajor : Layout::ColMajor);
-
-    lasr3(side, direction, C.as_const(), S.as_const(), A, work);
+    lasr3(side, direction, C.as_const(), S.as_const(), A);
 
     // Check that the result is the same
     for (idx_t i = 0; i < m; ++i)
         for (idx_t j = 0; j < n; ++j)
             A_copy(i, j) -= A(i, j);
 
-    print(A_copy);
+    real_t<T> err = 0.;
+    for (idx_t i = 0; i < m; ++i)
+        for (idx_t j = 0; j < n; ++j)
+            err = std::max(err, abs(A_copy(i, j)));
+
+    if( err > 1e-5 ){
+        std::cout << "Failed test_lasr3 with parameters: " << m << ", " << n << ", " << k << ", " << (char)side << ", " << (char)direction << std::endl;
+        std::cout << "Error: " << err << std::endl;
+    }
+
+    // print(A_copy);
 }
 
 int main()
@@ -88,23 +94,15 @@ int main()
     typedef lapack_idx_t idx_t;
     typedef std::complex<float> T;
 
-    for (idx_t nb = 1; nb < 10; nb += 2) {
-        for (idx_t n_rot = 3; n_rot < 10; ++n_rot) {
-            for (idx_t k = 1; k <= 2; k++) {
-                std::cout << "Side = left dir = forward "
-                          << "n_rot = " << n_rot << ", k = " << k << std::endl;
+    for (idx_t nb = 64; nb <= 2000; nb *= 2) {
+        for (idx_t n_rot = 2; n_rot <= 2000; n_rot*=2) {
+            for (idx_t k = 32; k <= 128; k+=32) {
                 test_lasr3<T, Layout::ColMajor, lapack_idx_t>(
                     n_rot + 1, nb, k, Side::Left, Direction::Forward);
-                std::cout << "Side = right dir = forward "
-                          << "n_rot = " << n_rot << ", k = " << k << std::endl;
                 test_lasr3<T, Layout::ColMajor, lapack_idx_t>(
                     nb, n_rot + 1, k, Side::Right, Direction::Forward);
-                std::cout << "Side = left dir = backward "
-                          << "n_rot = " << n_rot << ", k = " << k << std::endl;
                 test_lasr3<T, Layout::ColMajor, lapack_idx_t>(
                     n_rot + 1, nb, k, Side::Left, Direction::Backward);
-                std::cout << "Side = right dir = backward "
-                          << "n_rot = " << n_rot << ", k = " << k << std::endl;
                 test_lasr3<T, Layout::ColMajor, lapack_idx_t>(
                     nb, n_rot + 1, k, Side::Right, Direction::Backward);
             }

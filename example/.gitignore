@@ -5,3 +5,4 @@ test_gemv_cpp
 test_trsv_cpp
 test_geqrf_cpp
 test_lasr3
+profile_lasr3

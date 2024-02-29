@@ -1,10 +1,11 @@
 CXX=g++
-CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -g
+# CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -g -Og
+CXXFLAGS=-std=c++17 -O3 -march=native -ffast-math -g -DNDEBUG
 
 FC=gfortran
 FFLAGS=-Wall -Wextra -pedantic -g
 
-all: ./example/test_gemm_fortran ./example/test_gemm_cpp ./example/test_gemv_cpp ./example/test_gemv_fortran ./example/test_trsv_cpp ./example/test_geqrf_cpp ./example/test_lasr3
+all: ./example/test_gemm_fortran ./example/test_gemm_cpp ./example/test_gemv_cpp ./example/test_gemv_fortran ./example/test_trsv_cpp ./example/test_geqrf_cpp ./example/test_lasr3 ./example/profile_lasr3
 
 HEADERS = $(wildcard lapack_c/include/*.h) \
 		  $(wildcard lapack_c/include/*/*.h) \
@@ -62,7 +63,7 @@ lapack_c/src/%.o: lapack_c/src/%.f90
 	$(FC) $(FFLAGS) -c -o $@ $<
 
 # C++ files
-lapack_cpp/src/%.o: lapack_cpp/src/%.cpp
+lapack_cpp/src/%.o: lapack_cpp/src/%.cpp $(HEADERS)
 	$(CXX) $(CXXFLAGS) -I./lapack_c/include -I./lapack_cpp/include -c -o $@ $<
 
 # Test files
@@ -86,6 +87,9 @@ example/test_geqrf_cpp: example/test_geqrf.cpp $(OBJFILES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ $< $(OBJFILES) -I./lapack_c/include -I./lapack_cpp/include -lstdc++ -lgfortran -lblas -llapack
 
 example/test_lasr3: example/test_lasr3.cpp $(OBJFILES) $(HEADERS)
+	$(CXX) $(CXXFLAGS) -o $@ $< $(OBJFILES) -I./lapack_c/include -I./lapack_cpp/include -lstdc++ -lgfortran -lblas -llapack
+
+example/profile_lasr3: example/profile_lasr3.cpp $(OBJFILES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ $< $(OBJFILES) -I./lapack_c/include -I./lapack_cpp/include -lstdc++ -lgfortran -lblas -llapack
 
 clean:

@@ -53,6 +53,54 @@ void lasr3(Side side,
            Matrix<T, layout, idx_t> A,
            MemoryBlock<T, idx_t, true> work);
 
+/**
+ * Workspace query for lasr3.
+ */
+template <typename T, typename TC, typename TS, Layout layout, typename idx_t>
+idx_t lasr3_workquery(Side side,
+                      Direction direct,
+                      ConstMatrix<TC, layout, idx_t> C,
+                      ConstMatrix<TS, layout, idx_t> S,
+                      Matrix<T, layout, idx_t> A)
+{
+    const idx_t m = A.num_rows();
+    const idx_t n = A.num_columns();
+    const idx_t k = C.num_columns();
+    const idx_t num_rot = C.num_rows();
+
+    assert(side == Side::Left || side == Side::Right);
+    assert(direct == Direction::Forward || direct == Direction::Backward);
+    assert(C.num_rows() == S.num_rows());
+    assert(C.num_columns() == S.num_columns());
+    assert(side == Side::Left ? m : n == C.num_rows() + 1);
+
+    // Blocksize for the number of rows/columns of A to be processed at once
+    const idx_t block_mn = 256;
+    // Blocksize for the number of rotation sequences to be processed at once
+    const idx_t block_k = 64;
+    const idx_t block_k2 = std::min(num_rot - 3, block_k);
+
+    const idx_t nm2 = std::min(block_mn, side == Side::Left ? n : m);
+    const idx_t k2 = std::min(block_k2, k);
+
+    return calc_ld<T, idx_t>(nm2) * (k2 + 2);
+}
+
+/**
+ * @copydoc lasr3
+ */
+template <typename T, typename TC, typename TS, Layout layout, typename idx_t>
+void lasr3(Side side,
+           Direction direct,
+           ConstMatrix<TC, layout, idx_t> C,
+           ConstMatrix<TS, layout, idx_t> S,
+           Matrix<T, layout, idx_t> A)
+{
+    idx_t lwork = lasr3_workquery(side, direct, C, S, A);
+    MemoryBlock<T, idx_t, true> work(lwork);
+    lasr3(side, direct, C, S, A, work);
+}
+
 namespace internal {
 
     /** Applies two plane rotations to three vectors.
@@ -656,35 +704,109 @@ void lasr3(Side side,
            Matrix<T, layout, idx_t> A,
            MemoryBlock<T, idx_t, true> work)
 {
-    idx_t m = A.num_rows();
-    idx_t n = A.num_columns();
-    idx_t k = C.num_columns();
+    const idx_t m = A.num_rows();
+    const idx_t n = A.num_columns();
+    const idx_t k = C.num_columns();
+    const idx_t num_rot = C.num_rows();
 
     assert(side == Side::Left || side == Side::Right);
     assert(direct == Direction::Forward || direct == Direction::Backward);
     assert(C.num_rows() == S.num_rows());
     assert(C.num_columns() == S.num_columns());
     assert(side == Side::Left ? m : n == C.num_rows() + 1);
-    assert((side == Side::Left ? m : n) > k + 1);
+    assert(work.size() >= lasr3_workquery(side, direct, C, S, A));
+
+    // Blocksize for the number of rows/columns of A to be processed at once
+    const idx_t block_mn = 256;
+    // Blocksize for the number of rotation sequences to be processed at once
+    const idx_t block_k = 64;
+
+    if (num_rot < 4) {
+        // If there are less than 4 rotations, we can't really pipeline,
+        // just use standard loops
+        if (side == Side::Left) {
+            if (direct == Direction::Forward) {
+                for (idx_t i = 0; i < k; ++i)
+                    for (idx_t j = 0; j < num_rot; ++j)
+                        rot(A.row(j), A.row(j + 1), C(j, i), S(j, i));
+            }
+            else {
+                for (idx_t i = 0; i < k; ++i)
+                    for (idx_t j = num_rot - 1; j >= 0; --j)
+                        rot(A.row(j), A.row(j + 1), C(j, i), S(j, i));
+            }
+        }
+        else {
+            if (direct == Direction::Forward) {
+                for (idx_t i = 0; i < k; ++i)
+                    for (idx_t j = 0; j < num_rot; ++j)
+                        rot(A.column(j), A.column(j + 1), C(j, i),
+                            conj(S(j, i)));
+            }
+            else {
+                for (idx_t i = 0; i < k; ++i)
+                    for (idx_t j = num_rot - 1; j >= 0; --j)
+                        rot(A.column(j), A.column(j + 1), C(j, i),
+                            conj(S(j, i)));
+            }
+        }
+        return;
+    }
+
+    // We can only pipeline if num_rot > k + 2
+    // And for good performance, we want an even larger ratio
+    const idx_t block_k2 = std::min(num_rot - 3, block_k);
 
     if (side == Side::Left and direct == Direction::Forward) {
-        // TODO: do blocking
-        internal::lasr3_kernel_forward_left(C, S, A, work);
+        for (idx_t n_b = 0; n_b < n; n_b += block_mn) {
+            auto A2 = A.submatrix(0, m, n_b, std::min(n, n_b + block_mn));
+            for (idx_t k_b = 0; k_b < k; k_b += block_k2) {
+                auto C2 = C.submatrix(0, C.num_rows(), k_b,
+                                      std::min(k, k_b + block_k2));
+                auto S2 = S.submatrix(0, S.num_rows(), k_b,
+                                      std::min(k, k_b + block_k2));
+                internal::lasr3_kernel_forward_left(C2, S2, A2, work);
+            }
+        }
     }
 
     if (side == Side::Left and direct == Direction::Backward) {
-        // TODO: do blocking
-        internal::lasr3_kernel_backward_left(C, S, A, work);
+        for (idx_t n_b = 0; n_b < n; n_b += block_mn) {
+            auto A2 = A.submatrix(0, m, n_b, std::min(n, n_b + block_mn));
+            for (idx_t k_b = 0; k_b < k; k_b += block_k2) {
+                auto C2 = C.submatrix(0, C.num_rows(), k_b,
+                                      std::min(k, k_b + block_k2));
+                auto S2 = S.submatrix(0, S.num_rows(), k_b,
+                                      std::min(k, k_b + block_k2));
+                internal::lasr3_kernel_backward_left(C2, S2, A2, work);
+            }
+        }
     }
 
     if (side == Side::Right and direct == Direction::Forward) {
-        // TODO: do blocking
-        internal::lasr3_kernel_forward_right(C, S, A, work);
+        for (idx_t m_b = 0; m_b < m; m_b += block_mn) {
+            auto A2 = A.submatrix(m_b, std::min(m, m_b + block_mn), 0, n);
+            for (idx_t k_b = 0; k_b < k; k_b += block_k2) {
+                auto C2 = C.submatrix(0, C.num_rows(), k_b,
+                                      std::min(k, k_b + block_k2));
+                auto S2 = S.submatrix(0, S.num_rows(), k_b,
+                                      std::min(k, k_b + block_k2));
+                internal::lasr3_kernel_forward_right(C2, S2, A2, work);
+            }
+        }
     }
 
     if (side == Side::Right and direct == Direction::Backward) {
-        // TODO: do blocking
-        internal::lasr3_kernel_backward_right(C, S, A, work);
+        for (idx_t m_b = 0; m_b < m; m_b += block_mn) {
+            auto A2 = A.submatrix(m_b, std::min(m, m_b + block_mn), 0, n);
+            for (idx_t k_b = 0; k_b < k; k_b += block_k2) {
+                auto C2 = C.submatrix(0, C.num_rows(), k_b,
+                                      std::min(k, k_b + block_k2));
+                auto S2 = S.submatrix(0, S.num_rows(), k_b,
+                                      std::min(k, k_b + block_k2));
+                internal::lasr3_kernel_backward_right(C2, S2, A2, work);
+            }
+        }
     }
 }
 

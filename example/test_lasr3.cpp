@@ -90,12 +90,12 @@ int main()
             std::cout << "n_rot = " << n_rot << ", k = " << k << std::endl;
             test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
                 n_rot + 1, 1, k, Side::Left, Direction::Forward);
-            // test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
-            //     n_rot + 1, n_rot + 1, k, Side::Right, Direction::Forward);
+            test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
+                1, n_rot + 1, k, Side::Right, Direction::Forward);
             test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
                 n_rot + 1, 1, k, Side::Left, Direction::Backward);
-            // test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
-            //     n_rot + 1, n_rot + 1, k, Side::Right, Direction::Backward);
+            test_lasr3<float, Layout::ColMajor, lapack_idx_t>(
+                1, n_rot + 1, k, Side::Right, Direction::Backward);
         }
     }
     return 0;

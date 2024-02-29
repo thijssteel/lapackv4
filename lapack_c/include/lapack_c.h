@@ -11,5 +11,6 @@
 
 // LAPACK
 #include "lapack_c/geqrf.h"
+#include "lapack_c/lartg.h"
 
 #endif

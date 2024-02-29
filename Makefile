@@ -4,7 +4,7 @@ CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -g
 FC=gfortran
 FFLAGS=-Wall -Wextra -pedantic -g
 
-all: ./example/test_gemm_fortran ./example/test_gemm_cpp ./example/test_gemv_cpp ./example/test_gemv_fortran ./example/test_trsv_cpp ./example/test_geqrf_cpp
+all: ./example/test_gemm_fortran ./example/test_gemm_cpp ./example/test_gemv_cpp ./example/test_gemv_fortran ./example/test_trsv_cpp ./example/test_geqrf_cpp ./example/test_lasr3
 
 HEADERS = $(wildcard lapack_c/include/*.h) \
 		  $(wildcard lapack_c/include/*/*.h) \
@@ -22,11 +22,14 @@ OBJFILES = lapack_fortran/src/sgemm.o \
 		   lapack_c/src/rot_c.o \
 		   lapack_c/src/trsv_c.o \
 		   lapack_c/src/geqrf_c.o \
+		   lapack_c/src/lartg_c.o \
 		   lapack_cpp/src/gemm_cpp.o \
 		   lapack_cpp/src/gemv_cpp.o \
 		   lapack_cpp/src/rot_cpp.o \
 		   lapack_cpp/src/trsv_cpp.o \
+		   lapack_cpp/src/lartg_cpp.o \
 		   lapack_cpp/src/geqrf_cpp.o \
+		   lapack_cpp/src/debugutils.o \
 		   lapack_fortran/src/zrot.o \
 		   lapack_fortran/src/crot.o \
 
@@ -80,6 +83,9 @@ example/test_trsv_cpp: example/test_trsv.cpp $(OBJFILES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ $< $(OBJFILES) -I./lapack_c/include -I./lapack_cpp/include -lstdc++ -lgfortran -lblas -llapack
 
 example/test_geqrf_cpp: example/test_geqrf.cpp $(OBJFILES) $(HEADERS)
+	$(CXX) $(CXXFLAGS) -o $@ $< $(OBJFILES) -I./lapack_c/include -I./lapack_cpp/include -lstdc++ -lgfortran -lblas -llapack
+
+example/test_lasr3: example/test_lasr3.cpp $(OBJFILES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ $< $(OBJFILES) -I./lapack_c/include -I./lapack_cpp/include -lstdc++ -lgfortran -lblas -llapack
 
 clean:

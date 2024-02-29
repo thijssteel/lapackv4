@@ -1,8 +1,8 @@
 #ifndef LAPACK_CPP_BASE_TYPES_HPP
 #define LAPACK_CPP_BASE_TYPES_HPP
 
-#include <cstdint>
 #include <complex>
+#include <cstdint>
 #include <type_traits>
 
 // While the library is templated and can handle different integers,
@@ -17,13 +17,17 @@ inline T conj(const T& x)
     return x;
 }
 
-// declare real for real types
-template <typename T,
-          std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
-inline T real(const T& x)
-{
-    return x;
-}
+template <typename T>
+struct real_type_struct {
+    typedef T type;
+};
 
+template <typename T>
+struct real_type_struct<std::complex<T>> {
+    typedef T type;
+};
 
-#endif // LAPACK_CPP_BASE_TYPES_HPP
+template <typename T>
+using real_t = typename real_type_struct<T>::type;
+
+#endif  // LAPACK_CPP_BASE_TYPES_HPP

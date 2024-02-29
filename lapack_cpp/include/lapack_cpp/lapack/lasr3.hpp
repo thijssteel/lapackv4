@@ -7,6 +7,52 @@
 
 namespace lapack_cpp {
 
+/**
+ * Applies a sequence of plane rotations to a general rectangular matrix.
+ *
+ * @param side   Specifies whether the plane rotations are applied to A on the
+ *               left or right.
+ *
+ * @param direct Specifies whether the sequence is applied in forward or
+ *               backward order.
+ *
+ * @param C      The cosines of the rotations
+ *               If side == Side::Left, C is an array of dimension m-1 x k
+ *               If side == Side::Right, C is an array of dimension n-1 x k
+ *
+ * @param S      The sines of the rotations
+ *               If side == Side::Left, S is an array of dimension m-1 x k
+ *               If side == Side::Right, S is an array of dimension n-1 x k
+ *
+ * @param A      m x n matrix to which the rotations are to be applied.
+ *
+ * @param work   A workspace array, its dimension is specified by lasr3_work.
+ *               Note, because we use the work array to align the data for
+ *               efficient vectorization, this routine only support aligned
+ *               work arrays.
+ *
+ * @tparam T     The type of the elements of the matrix A.
+ *
+ * @tparam TC    The type of the elements of the matrix C.
+ *
+ * @tparam TS    The type of the elements of the matrix S.
+ *
+ * @tparam layout The layout of the matrices A, C, and S.
+ *
+ * @tparam idx_t  The type of the indices.
+ *
+ * @note if either TC or TS is a complex type, then T must also be a complex
+ * type.
+ *
+ */
+template <typename T, typename TC, typename TS, Layout layout, typename idx_t>
+void lasr3(Side side,
+           Direction direct,
+           ConstMatrix<TC, layout, idx_t> C,
+           ConstMatrix<TS, layout, idx_t> S,
+           Matrix<T, layout, idx_t> A,
+           MemoryBlock<T, idx_t, true> work);
+
 /** Applies two plane rotations to three vectors.
  *
  * [x1]   [1 0   0  ]   [c1  s1 0]   [x1]
@@ -125,43 +171,118 @@ void rot_fuse2x2(Vector<T, idx_t> x1,
     }
 }
 
+// Kernel for lasr3, forward left variant
+template <typename T, typename TC, typename TS, Layout layout, typename idx_t>
+void lasr3_kernel_forward_left(ConstMatrix<TC, layout, idx_t> C,
+                               ConstMatrix<TS, layout, idx_t> S,
+                               Matrix<T, layout, idx_t> A,
+                               MemoryBlock<T, idx_t, true> work)
+{
+    idx_t m = A.num_rows();
+    idx_t n = A.num_columns();
+    idx_t k = C.num_columns();
+
+    assert(C.num_rows() == S.num_rows());
+    assert(C.num_columns() == S.num_columns());
+    assert(m == C.num_rows() + 1);
+    assert(m > k + 1);
+
+    // Number of rows that will be stored in the packed workspace matrix
+    const idx_t np = k + 2;
+    // During the algorithm, instead of applying the rotations directly to
+    // the matrix A, we will apply them to a packed version of A. This is
+    // done to allow for efficient vectorization of the rotations. The
+    // packed matrix is stored in the workspace array. Since we apply the
+    // rotations from the left, this packed matrix is always row-major
+    // regardless of the layout of A.
+    Matrix<T, Layout::RowMajor, idx_t> A_pack(np, n, work);
+    // A_pack will store np rows of A.
+    // To avoid having to shuffle rows in A, we keep track of two indices
+    // For i = i_pack2, ..., i_pack2 + np - 1, row (i_pack + i - i_pack2 +
+    // np) % np of A_pack corresponds to row i of A2.
+    idx_t i_pack = 0;
+    idx_t i_pack2 = 0;
+
+    // Copy the first np rows of A to A_pack
+    for (idx_t i = 0; i < np; ++i) {
+        for (idx_t j = 0; j < n; ++j) {
+            A_pack(i, j) = A(i, j);
+        }
+    }
+
+    // Startup phase
+    for (idx_t j = 0; j + 1 < k; ++j) {
+        for (idx_t i = 0, g = j; i < j + 1; ++i, --g) {
+            rot(A_pack.row(g), A_pack.row(g + 1), C(g, i), S(g, i));
+        }
+    }
+
+    // Pipeline phase
+    for (idx_t j = k - 1; j + 1 < m - 1; j += 2) {
+        for (idx_t i = 0, g = j; i + 1 < k; i += 2, g -= 2) {
+            auto a1 = A_pack.row((g - 1 + i_pack - i_pack2 + np) % np);
+            auto a2 = A_pack.row((g + i_pack - i_pack2 + np) % np);
+            auto a3 = A_pack.row((g + 1 + i_pack - i_pack2 + np) % np);
+            auto a4 = A_pack.row((g + 2 + i_pack - i_pack2 + np) % np);
+
+            rot_fuse2x2(a1, a2, a3, a4, C(g, i), S(g, i), C(g - 1, i + 1),
+                        S(g - 1, i + 1), C(g + 1, i), S(g + 1, i), C(g, i + 1),
+                        S(g, i + 1));
+        }
+        if (k % 2 == 1) {
+            // k is odd, so there are two more rotations to apply
+            idx_t i = k - 1;
+            idx_t g = j - i;
+
+            auto a1 = A_pack.row((g + i_pack - i_pack2 + np) % np);
+            auto a2 = A_pack.row((g + 1 + i_pack - i_pack2 + np) % np);
+            auto a3 = A_pack.row((g + 2 + i_pack - i_pack2 + np) % np);
+
+            rot_fuse2x1(a1, a2, a3, C(g, i), S(g, i), C(g + 1, i), S(g + 1, i));
+        }
+        // rows i_pack and i_pack+1 of A_pack are finished, copy them back
+        // to A
+        for (idx_t i = 0; i < n; i++) {
+            A(i_pack2, i) = A_pack(i_pack, i);
+            A(i_pack2 + 1, i) = A_pack((i_pack + 1) % np, i);
+        }
+        // Pack next rows and update i_pack and i_pack2
+        if (j + 4 < m) {
+            for (idx_t i = 0; i < n; i++) {
+                A_pack(i_pack, i) = A(j + 3, i);
+                A_pack((i_pack + 1) % np, i) = A(j + 4, i);
+            }
+            i_pack = (i_pack + 2) % np;
+            i_pack2 += 2;
+        }
+        else if (j + 3 < m) {
+            for (idx_t i = 0; i < n; i++) {
+                A_pack(i_pack, i) = A(j + 3, i);
+            }
+            i_pack = (i_pack + 1) % np;
+            i_pack2 += 1;
+        }
+    }
+
+    // Shutdown phase
+    for (idx_t j = (m - k + 1) % 2; j < k; ++j) {
+        for (idx_t i = j, g = m - 2; i < k; ++i, --g) {
+            auto a1 = A_pack.row((g + i_pack - i_pack2 + np) % np);
+            auto a2 = A_pack.row((g + 1 + i_pack - i_pack2 + np) % np);
+            rot(a1, a2, C(g, i), S(g, i));
+        }
+    }
+
+    // Copy the last np rows of A_pack back to A
+    for (idx_t i = 0; i < std::min(np, m - i_pack2); ++i) {
+        for (idx_t j = 0; j < n; ++j) {
+            A(i_pack2 + i, j) = A_pack((i_pack + i) % np, j);
+        }
+    }
+}
+
 /**
- * Applies a sequence of plane rotations to a general rectangular matrix.
- *
- * @param side   Specifies whether the plane rotations are applied to A on the
- *               left or right.
- *
- * @param direct Specifies whether the sequence is applied in forward or
- *               backward order.
- *
- * @param C      The cosines of the rotations
- *               If side == Side::Left, C is an array of dimension m-1 x k
- *               If side == Side::Right, C is an array of dimension n-1 x k
- *
- * @param S      The sines of the rotations
- *               If side == Side::Left, S is an array of dimension m-1 x k
- *               If side == Side::Right, S is an array of dimension n-1 x k
- *
- * @param A      m x n matrix to which the rotations are to be applied.
- *
- * @param work   A workspace array, its dimension is specified by lasr3_work.
- *               Note, because we use the work array to align the data for
- *               efficient vectorization, this routine only support aligned
- *               work arrays.
- *
- * @tparam T     The type of the elements of the matrix A.
- *
- * @tparam TC    The type of the elements of the matrix C.
- *
- * @tparam TS    The type of the elements of the matrix S.
- *
- * @tparam layout The layout of the matrices A, C, and S.
- *
- * @tparam idx_t  The type of the indices.
- *
- * @note if either TC or TS is a complex type, then T must also be a complex
- * type.
- *
+ * @copydoc lasr3
  */
 template <typename T, typename TC, typename TS, Layout layout, typename idx_t>
 void lasr3(Side side,
@@ -171,121 +292,20 @@ void lasr3(Side side,
            Matrix<T, layout, idx_t> A,
            MemoryBlock<T, idx_t, true> work)
 {
-    idx_t m = A.rows();
-    idx_t n = A.cols();
-    idx_t k = C.cols();
+    idx_t m = A.num_rows();
+    idx_t n = A.num_columns();
+    idx_t k = C.num_columns();
 
     assert(side == Side::Left || side == Side::Right);
     assert(direct == Direction::Forward || direct == Direction::Backward);
-    assert(C.rows() == S.rows());
-    assert(C.cols() == S.cols());
-    assert(side == Side::Left ? m : n == C.rows() + 1);
+    assert(C.num_rows() == S.num_rows());
+    assert(C.num_columns() == S.num_columns());
+    assert(side == Side::Left ? m : n == C.num_rows() + 1);
+    assert((side == Side::Left ? m : n) > k + 1);
 
     if (side == Side::Left and direct == Direction::Forward) {
-        // Split the matrix into submatrices to make sure we can always use
-        // pipelining (Note, this is not complete yet, we just take full
-        // submatrices)
-        auto A2 = A.submatrix(0, 0, m, n);
-        auto C2 = C.submatrix(0, 0, m - 1, k);
-        auto S2 = C.submatrix(0, 0, m - 1, k);
-
-        idx_t m2 = A2.rows();
-        idx_t n2 = A2.cols();
-        idx_t k2 = C2.cols();
-
-        // Number of rows that will be stored in the packed workspace matrix
-        const idx_t np = k2 + 2;
-        // During the algorithm, instead of applying the rotations directly to
-        // the matrix A, we will apply them to a packed version of A. This is
-        // done to allow for efficient vectorization of the rotations. The
-        // packed matrix is stored in the workspace array. Since we apply the
-        // rotations from the left, this packed matrix is always row-major
-        // regardless of the layout of A.
-        Matrix<T, Layout::RowMajor, idx_t> A_pack(np, n2, work);
-        // A_pack will store np rows of A2.
-        // To avoid having to shuffle rows in A2, we keep track of two indices
-        // For i = i_pack2, ..., i_pack2 + np - 1, row (i_pack + i - i_pack2 +
-        // np) % np of A_pack corresponds to row i of A2.
-        idx_t i_pack = 0;
-        idx_t i_pack2 = 0;
-
-        // Copy the first np rows of A to A_pack
-        for (idx_t i = 0; i < np; ++i) {
-            for (idx_t j = 0; j < n2; ++j) {
-                A_pack(i, j) = A2(i, j);
-            }
-        }
-
-        // Startup phase
-        for (idx_t j = 0; j + 1 < k2; ++j) {
-            for (idx_t i = 0, g = j; i < j + 1; ++i, --g) {
-                rot(A_pack.row(g), A_pack.row(g + 1), C2(g, j), S2(g, j));
-            }
-        }
-
-        // Pipeline phase
-        for (idx_t j = k2 - 1; j + 1 < m2 - 1; j += 2) {
-            for (idx_t i = 0, g = j; i + 1 < k2; i += 2, g -= 2) {
-                auto a1 = A_pack.row((g - 1 + i_pack - i_pack2 + np) % np);
-                auto a2 = A_pack.row((g + i_pack - i_pack2 + np) % np);
-                auto a3 = A_pack.row((g + 1 + i_pack - i_pack2 + np) % np);
-                auto a4 = A_pack.row((g + 2 + i_pack - i_pack2 + np) % np);
-
-                rot_fuse2x2(a1, a2, a3, a4, C(g, i), S(g, i), C(g - 1, i + 1),
-                            S(g - 1, i + 1), C(g + 1, i), S(g + 1, i),
-                            C(g, i + 1), S(g, i + 1));
-            }
-            if (k % 2 == 1) {
-                // k is odd, so there are two more rotations to apply
-                idx_t i = k - 1;
-                idx_t g = j - i;
-
-                auto a1 = A_pack.row((g + i_pack - i_pack2 + np) % np);
-                auto a2 = A_pack.row((g + 1 + i_pack - i_pack2 + np) % np);
-                auto a3 = A_pack.row((g + 2 + i_pack - i_pack2 + np) % np);
-
-                rot_fuse2x1(a1, a2, a3, C(g, i), S(g, i), C(g + 1, i),
-                            S(g + 1, i));
-            }
-            // rows i_pack and i_pack+1 of A_pack are finished, copy them back
-            // to A2
-            for (idx_t i = 0; i < n2; i++) {
-                A2(i_pack2, i) = A_pack(i_pack, i);
-                A2(i_pack2 + 1, i) = A_pack((i_pack + 1) % np, i);
-            }
-            // Pack next rows and update i_pack and i_pack2
-            if (j + 4 < m2) {
-                for (idx_t i = 0; i < n2; i++) {
-                    A_pack(i_pack, i) = A2(j + 3, i);
-                    A_pack((i_pack + 1) % np, i) = A2(j + 4, i);
-                }
-                i_pack = (i_pack + 2) % np;
-                i_pack2 += 2;
-            }
-            else if (j + 3 < m) {
-                for (idx_t i = 0; i < n2; i++) {
-                    A_pack(i_pack, i) = A2(j + 3, i);
-                }
-                i_pack = (i_pack + 1) % np;
-                i_pack2 += 1;
-            }
-        }
-
-        // Shutdown phase
-        for (idx_t j = (n2 - k2 + 1) % 2; j < k2; ++j) {
-            for (idx_t i = j, g = n2 - 2; i < k2; ++i, --g) {
-                auto a1 = A_pack.row((g + i_pack - i_pack2 + np) % np);
-                auto a2 = A_pack.row((g + 1 + i_pack - i_pack2 + np) % np);
-                rot(a1, a2, C(g, i), S(g, i));
-            }
-        }
-
-        // Copy the last np rows of A_pack back to A2
-        for (idx_t i = 0; i < std::min(np, m2 - i_pack2); ++i) {
-            for (idx_t j = 0; j < n2; ++j) {
-                A2(i_pack2 + i, j) = A_pack((i_pack + i) % np, j);
-            }
-        }
+        // TODO: do blocking
+        lasr3_kernel_forward_left(C, S, A, work);
     }
 }
 

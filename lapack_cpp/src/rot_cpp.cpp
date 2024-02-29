@@ -1,10 +1,11 @@
-#include <cassert>
-#include <complex>
-#include <type_traits>
+#ifdef USE_FORTRAN_BLAS
+    #include <cassert>
+    #include <complex>
+    #include <type_traits>
 
-#include "lapack_c.h"
-#include "lapack_cpp/base.hpp"
-#include "lapack_cpp/blas/rot.hpp"
+    #include "lapack_c.h"
+    #include "lapack_cpp/base.hpp"
+    #include "lapack_cpp/blas/rot.hpp"
 
 namespace lapack_cpp {
 
@@ -41,14 +42,15 @@ inline void rot_c_wrapper(const Vector<T, idx_t>& x,
     }
 }
 
-// We have a lot of types to instantiate for, so we use a macro to avoid
-// repetition.
-#define INSTANTIATE_ROT(T, TC, idx_t)                                            \
-    template <>                                                              \
-    void rot(const Vector<T, idx_t>& x, const Vector<T, idx_t>& y, TC c, T s) \
-    {                                                                        \
-        rot_c_wrapper(x, y, c, s);                                           \
-    }
+    // We have a lot of types to instantiate for, so we use a macro to avoid
+    // repetition.
+    #define INSTANTIATE_ROT(T, TC, idx_t)                                    \
+        template <>                                                          \
+        void rot(const Vector<T, idx_t>& x, const Vector<T, idx_t>& y, TC c, \
+                 T s)                                                        \
+        {                                                                    \
+            rot_c_wrapper(x, y, c, s);                                       \
+        }
 
 INSTANTIATE_ROT(float, float, lapack_idx_t)
 INSTANTIATE_ROT(double, double, lapack_idx_t)
@@ -59,6 +61,7 @@ INSTANTIATE_ROT(double, double, int)
 INSTANTIATE_ROT(std::complex<float>, float, int)
 INSTANTIATE_ROT(std::complex<double>, double, int)
 
-#undef INSTANTIATE_ROT
+    #undef INSTANTIATE_ROT
 
 }  // namespace lapack_cpp
+#endif  // USE_FORTRAN_BLAS

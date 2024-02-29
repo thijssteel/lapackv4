@@ -87,7 +87,7 @@ inline idx_t geqrf_work_c_wrapper(const Matrix<T, layout, idx_t>& A,
 
     // TODO: check for info and throw exception
 
-    return static_cast<idx_t>(real(dummywork));
+    return static_cast<idx_t>(std::real(dummywork));
 }
 
 // We have a lot of types to instantiate for, so we use a macro to avoid

@@ -84,7 +84,7 @@ class Matrix {
         assert(m.num_columns() == n_);
         for (idx_t i = 0; i < m_; ++i) {
             for (idx_t j = 0; j < n_; ++j) {
-                data_[i + j * ldim_] = m(i, j);
+                (*this)(i,j) = m(i, j);
             }
         }
     }

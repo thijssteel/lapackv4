@@ -199,7 +199,7 @@ void lasr3_kernel_forward_left(ConstMatrix<TC, layout, idx_t> C,
     // A_pack will store np rows of A.
     // To avoid having to shuffle rows in A, we keep track of two indices
     // For i = i_pack2, ..., i_pack2 + np - 1, row (i_pack + i - i_pack2 +
-    // np) % np of A_pack corresponds to row i of A2.
+    // np) % np of A_pack corresponds to row i of A.
     idx_t i_pack = 0;
     idx_t i_pack2 = 0;
 
@@ -309,7 +309,7 @@ void lasr3_kernel_backward_left(ConstMatrix<TC, layout, idx_t> C,
     // A_pack will store np rows of A.
     // To avoid having to shuffle rows in A, we keep track of two indices
     // For i = i_pack2, ..., i_pack2 + np - 1, row (i_pack + i - i_pack2 +
-    // np) % np of A_pack corresponds to row i of A2.
+    // np) % np of A_pack corresponds to row i of A.
     idx_t i_pack = 0;
     idx_t i_pack2 = m - np;
 
@@ -394,7 +394,7 @@ void lasr3_kernel_backward_left(ConstMatrix<TC, layout, idx_t> C,
     }
 }
 
-// Kernel for lasr3, forward left variant
+// Kernel for lasr3, forward right variant
 template <typename T, typename TC, typename TS, Layout layout, typename idx_t>
 void lasr3_kernel_forward_right(ConstMatrix<TC, layout, idx_t> C,
                                 ConstMatrix<TS, layout, idx_t> S,
@@ -422,7 +422,7 @@ void lasr3_kernel_forward_right(ConstMatrix<TC, layout, idx_t> C,
     // A_pack will store np columns of A.
     // To avoid having to shuffle columns in A, we keep track of two indices
     // For i = i_pack2, ..., i_pack2 + np - 1, column (i_pack + i - i_pack2 +
-    // np) % np of A_pack corresponds to column i of A2.
+    // np) % np of A_pack corresponds to column i of A.
     idx_t i_pack = 0;
     idx_t i_pack2 = 0;
 
@@ -504,6 +504,119 @@ void lasr3_kernel_forward_right(ConstMatrix<TC, layout, idx_t> C,
     }
 }
 
+// Kernel for lasr3, backward right variant
+template <typename T, typename TC, typename TS, Layout layout, typename idx_t>
+void lasr3_kernel_backward_right(ConstMatrix<TC, layout, idx_t> C,
+                                ConstMatrix<TS, layout, idx_t> S,
+                                Matrix<T, layout, idx_t> A,
+                                MemoryBlock<T, idx_t, true> work)
+{
+    idx_t m = A.num_rows();
+    idx_t n = A.num_columns();
+    idx_t k = C.num_columns();
+
+    assert(C.num_rows() == S.num_rows());
+    assert(C.num_columns() == S.num_columns());
+    assert(n == C.num_rows() + 1);
+    assert(n > k + 1);
+
+    // Number of columns that will be stored in the packed workspace matrix
+    const idx_t np = k + 2;
+    // During the algorithm, instead of applying the rotations directly to
+    // the matrix A, we will apply them to a packed version of A. This is
+    // done to allow for efficient vectorization of the rotations. The
+    // packed matrix is stored in the workspace array. Since we apply the
+    // rotations from the right, this packed matrix is always column-major
+    // regardless of the layout of A.
+    Matrix<T, Layout::ColMajor, idx_t> A_pack(m, np, work);
+    // A_pack will store np columns of A.
+    // To avoid having to shuffle columns in A, we keep track of two indices
+    // For i = i_pack2, ..., i_pack2 + np - 1, column (i_pack + i - i_pack2 +
+    // np) % np of A_pack corresponds to column i of A.
+    idx_t i_pack = 0;
+    idx_t i_pack2 = n - np;
+
+    // Copy the last np columns of A to A_pack
+    for (idx_t i = 0; i < m; ++i) {
+        for (idx_t j = 0; j < np; ++j) {
+            A_pack(i, j) = A(i, n - np + j);
+        }
+    }
+
+    // Startup phase
+    for (idx_t j = 0; j + 1 < k; ++j) {
+        for (idx_t i = 0, g = n - 2 - j; i < j + 1; ++i, ++g) {
+            rot(A_pack.column((g - i_pack2) % np),
+                A_pack.column((g + 1 - i_pack2) % np), C(g, i), S(g, i));
+        }
+    }
+
+    // Pipeline phase
+    for (idx_t j = k - 1; j + 1 < n - 1; j += 2) {
+        for (idx_t i = 0, g = n - 2 - j; i + 1 < k; i += 2, g += 2) {
+            auto a1 = A_pack.column((g - 1 + i_pack - i_pack2) % np);
+            auto a2 = A_pack.column((g + i_pack - i_pack2) % np);
+            auto a3 = A_pack.column((g + 1 + i_pack - i_pack2) % np);
+            auto a4 = A_pack.column((g + 2 + i_pack - i_pack2) % np);
+
+            rot_fuse2x2(a1, a2, a3, a4, C(g, i), S(g, i), C(g - 1, i),
+                        S(g - 1, i), C(g + 1, i + 1), S(g + 1, i + 1),
+                        C(g, i + 1), S(g, i + 1));
+        }
+        if (k % 2 == 1) {
+            // k is odd, so there are two more rotations to apply
+            idx_t i = k - 1;
+            idx_t g = n - 2 - j + i;
+
+            auto a1 = A_pack.column((g - 1 + i_pack - i_pack2 + np) % np);
+            auto a2 = A_pack.column((g + i_pack - i_pack2 + np) % np);
+            auto a3 = A_pack.column((g + 1 + i_pack - i_pack2 + np) % np);
+
+            rot_fuse1x2(a1, a2, a3, C(g, i), S(g, i), C(g - 1, i), S(g - 1, i));
+        }
+        // columns i_pack+np-2 and i_pack+np-1 are finished, copy them back to A
+        for (idx_t i = 0; i < m; i++) {
+            A(i,i_pack2 + np - 2) = A_pack(i,(i_pack + np - 2) % np);
+            A(i,i_pack2 + np - 1) = A_pack(i,(i_pack + np - 1) % np);
+        }
+        // Pack next rows and update i_pack and i_pack2
+        if (i_pack2 > 1) {
+            for (idx_t i = 0; i < m; i++) {
+                A_pack(i,(i_pack + np - 2) % np) = A(i,i_pack2 - 2);
+                A_pack(i,(i_pack + np - 1) % np) = A(i,i_pack2 - 1);
+            }
+            i_pack = (i_pack + np - 2) % np;
+            i_pack2 -= 2;
+        }
+        else if (i_pack2 > 0) {
+            for (idx_t i = 0; i < m; i++) {
+                A_pack(i,(i_pack + np - 1) % np) = A(i,i_pack2 - 1);
+            }
+            i_pack = (i_pack + np - 1) % np;
+            i_pack2 -= 1;
+        }
+    }
+
+    // By now, i_pack2 should point to the start of the matrix.
+    assert(i_pack2 == 0);
+
+    // Shutdown phase
+    for (idx_t j = (n - k + 1) % 2; j < k; ++j) {
+        for (idx_t i = j, g = 0; i < k; ++i, ++g) {
+            auto a1 = A_pack.column((g + i_pack - i_pack2 + np) % np);
+            auto a2 = A_pack.column((g + 1 + i_pack - i_pack2 + np) % np);
+            rot(a1, a2, C(g, i), S(g, i));
+        }
+    }
+
+    // Copy the first np columns of A_pack back to A
+    for (idx_t i = 0; i < m; ++i) {
+        for (idx_t j = 0; j < np; ++j) {
+            A(i, j) = A_pack(i, (i_pack + j) % np);
+        }
+    }
+}
+
 /**
  * @copydoc lasr3
  */
@@ -540,6 +653,12 @@ void lasr3(Side side,
         // TODO: do blocking
         lasr3_kernel_forward_right(C, S, A, work);
     }
+
+    if (side == Side::Right and direct == Direction::Backward) {
+        // TODO: do blocking
+        lasr3_kernel_backward_right(C, S, A, work);
+    }
+
 }
 
 }  // namespace lapack_cpp
